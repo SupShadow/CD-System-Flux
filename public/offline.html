@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYSTEM FLUX // OFFLINE</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+      color: #fafafa;
+      font-family: 'Courier New', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .glitch {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #FF4500;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      animation: glitch 1s infinite;
+    }
+    @keyframes glitch {
+      0%, 100% { text-shadow: 2px 0 #00D4FF, -2px 0 #FF00FF; }
+      25% { text-shadow: -2px 0 #00D4FF, 2px 0 #FF00FF; }
+      50% { text-shadow: 2px 2px #00D4FF, -2px -2px #FF00FF; }
+      75% { text-shadow: -2px 2px #00D4FF, 2px -2px #FF00FF; }
+    }
+    .status {
+      margin-top: 2rem;
+      padding: 1rem 2rem;
+      border: 1px solid #FF4500;
+      background: rgba(255, 69, 0, 0.1);
+    }
+    .status-label {
+      font-size: 0.7rem;
+      color: #FF4500;
+      letter-spacing: 0.3em;
+      margin-bottom: 0.5rem;
+    }
+    .status-message {
+      font-size: 0.9rem;
+      color: #fafafa;
+      opacity: 0.7;
+    }
+    .retry-btn {
+      margin-top: 2rem;
+      padding: 0.75rem 2rem;
+      background: transparent;
+      border: 1px solid #FF4500;
+      color: #FF4500;
+      font-family: inherit;
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .retry-btn:hover {
+      background: #FF4500;
+      color: #0a0a0a;
+    }
+    .scanline {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1),
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+    }
+  </style>
+</head>
+<body>
+  <div class="scanline"></div>
+  <div class="container">
+    <h1 class="glitch">OFFLINE</h1>
+    <div class="status">
+      <div class="status-label">SYSTEM_STATUS</div>
+      <div class="status-message">CONNECTION_LOST // AWAITING_SIGNAL</div>
+    </div>
+    <button class="retry-btn" onclick="location.reload()">
+      RETRY_CONNECTION
+    </button>
+  </div>
+</body>
+</html>

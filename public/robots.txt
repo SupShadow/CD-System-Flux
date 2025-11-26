@@ -1,0 +1,11 @@
+# SYSTEM FLUX - Julian Guggeis
+# https://supshadow.github.io/CD-System-Flux
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://supshadow.github.io/CD-System-Flux/sitemap.xml
+
+# Block access to music files for crawlers (save bandwidth)
+Disallow: /music/*.mp3

@@ -1,160 +1,199 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, ListMusic } from "lucide-react";
-import { motion } from "framer-motion";
-import { TRACKS } from "@/lib/tracks";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Play, Pause, SkipBack, SkipForward, List, Volume2, VolumeX, Maximize2, Keyboard } from "lucide-react";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { useAudio } from "@/contexts/AudioContext";
+import { useKeyboardShortcuts } from "@/hooks";
 import TrackList from "./TrackList";
+import FullscreenVisualizer from "./FullscreenVisualizer";
+import KeyboardHints from "./KeyboardHints";
+import TypewriterText from "./TypewriterText";
+import AudioWaveform from "./AudioWaveform";
+import TransmitButton from "./TransmitButton";
+import { cn } from "@/lib/utils";
 
-// Helper functions to manage global audio state outside of the component
-// to avoid react-hooks/immutability lint errors
-const getGlobalAudio = () => window.fluxAudio;
-const setGlobalAudio = (audio: HTMLAudioElement | null) => {
-    window.fluxAudio = audio;
-};
+function formatTime(seconds: number): string {
+    if (!isFinite(seconds) || seconds < 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+// Thinking dots animation component
+function ThinkingDots() {
+    const [dots, setDots] = useState("");
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(prev => prev.length >= 3 ? "" : prev + ".");
+        }, 400);
+        return () => clearInterval(interval);
+    }, []);
+
+    return <span className="inline-block w-6">{dots}</span>;
+}
+
+// Agent status indicator
+function AgentStatus({ isActive }: { isActive: boolean }) {
+    return (
+        <div className="flex items-center gap-2">
+            <motion.div
+                className={cn(
+                    "w-2 h-2 rounded-full",
+                    isActive ? "bg-signal" : "bg-stark/30"
+                )}
+                animate={isActive ? {
+                    boxShadow: ["0 0 0px #FF4500", "0 0 8px #FF4500", "0 0 0px #FF4500"],
+                } : {}}
+                transition={{ duration: 1, repeat: Infinity }}
+            />
+            <span className={cn(
+                "font-mono text-[10px] tracking-wider",
+                isActive ? "text-signal" : "text-stark/50"
+            )}>
+                {isActive ? "ACTIVE" : "IDLE"}
+            </span>
+        </div>
+    );
+}
 
 export default function FluxPlayer() {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
-    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+    const {
+        isPlaying,
+        currentTrack,
+        currentTrackIndex,
+        availableTracks,
+        togglePlay,
+        playNext,
+        playPrev,
+        playTrack,
+        isMuted,
+        setIsMuted,
+        duration,
+        currentTime,
+        progress,
+        seekToPercent,
+    } = useAudio();
+
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+    const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
+    const [waveformStyle, setWaveformStyle] = useState<"bars" | "wave" | "mirror">("mirror");
+    const progressRef = useRef<HTMLDivElement>(null);
+    const touchStartX = useRef<number>(0);
+    const touchStartY = useRef<number>(0);
+    const swipeX = useMotionValue(0);
+    const swipeOpacity = useTransform(swipeX, [-100, 0, 100], [0.5, 1, 0.5]);
 
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const gainNodeRef = useRef<GainNode | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-
-    const currentTrack = TRACKS[currentTrackIndex];
-
-    const initAudio = () => {
-        if (audioContextRef.current) return;
-
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContext();
-
-        const gain = audioContextRef.current.createGain();
-        const analyser = audioContextRef.current.createAnalyser();
-        analyser.fftSize = 256;
-
-        gain.connect(analyser);
-        analyser.connect(audioContextRef.current.destination);
-
-        gainNodeRef.current = gain;
-        analyserRef.current = analyser;
-    };
-
-    const playTrack = (index: number) => {
-        if (!audioContextRef.current) initAudio();
-
-        // Cleanup previous audio
-        const currentAudio = getGlobalAudio();
-        if (currentAudio) {
-            currentAudio.pause();
-            setGlobalAudio(null);
-        }
-
-        const track = TRACKS[index];
-        const audio = new Audio(track.src);
-        audio.crossOrigin = "anonymous";
-
-        // Auto-play next track
-        audio.addEventListener("ended", () => {
-            playNext();
-        });
-
-        const source = audioContextRef.current!.createMediaElementSource(audio);
-        source.connect(gainNodeRef.current!);
-
-        audio.play().catch(e => console.error("Playback failed:", e));
-        setGlobalAudio(audio);
-
-        setCurrentTrackIndex(index);
-        setIsPlaying(true);
-
-        if (audioContextRef.current?.state === "suspended") {
-            audioContextRef.current.resume();
-        }
-    };
-
-    const togglePlay = () => {
-        if (!audioContextRef.current) initAudio();
-
-        const currentAudio = getGlobalAudio();
-
-        if (isPlaying) {
-            currentAudio?.pause();
-            audioContextRef.current?.suspend();
-        } else {
-            if (!currentAudio) {
-                playTrack(currentTrackIndex);
-            } else {
-                currentAudio?.play();
-                audioContextRef.current?.resume();
-            }
-        }
-        setIsPlaying(!isPlaying);
-    };
-
-    const playNext = () => {
-        const nextIndex = (currentTrackIndex + 1) % TRACKS.length;
-        playTrack(nextIndex);
-    };
-
-    const playPrev = () => {
-        const prevIndex = (currentTrackIndex - 1 + TRACKS.length) % TRACKS.length;
-        playTrack(prevIndex);
-    };
+    // Keyboard shortcuts
+    useKeyboardShortcuts({
+        onPlayPause: togglePlay,
+        onNextTrack: playNext,
+        onPrevTrack: playPrev,
+        onToggleMute: () => setIsMuted(!isMuted),
+        onToggleFullscreen: () => setIsVisualizerOpen(prev => !prev),
+        onTogglePlaylist: () => setIsPlaylistOpen(prev => !prev),
+        onShowHelp: () => setIsHelpOpen(prev => !prev),
+        onEscape: () => {
+            setIsHelpOpen(false);
+            setIsPlaylistOpen(false);
+        },
+    });
 
     useEffect(() => {
-        if (gainNodeRef.current) {
-            gainNodeRef.current.gain.value = isMuted ? 0 : 1;
-        }
-    }, [isMuted]);
-
-    // Visualizer Loop
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        let animationFrame: number;
-
-        const render = () => {
-            if (!analyserRef.current) {
-                // Idle animation
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#FF4500";
-                ctx.fillRect(0, canvas.height / 2, canvas.width, 1);
-                animationFrame = requestAnimationFrame(render);
-                return;
-            }
-
-            const bufferLength = analyserRef.current.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyserRef.current.getByteFrequencyData(dataArray);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#FF4500"; // Signal
-
-            const bars = 64;
-            const barWidth = canvas.width / bars;
-
-            for (let i = 0; i < bars; i++) {
-                const value = dataArray[i * 2]; // Skip some bins for wider bars
-                const percent = value / 255;
-                const height = Math.max(percent * canvas.height, 2);
-
-                // Mirrored visualizer
-                ctx.fillRect(i * barWidth, (canvas.height - height) / 2, barWidth - 1, height);
-            }
-
-            animationFrame = requestAnimationFrame(render);
-        };
-
-        render();
-        return () => cancelAnimationFrame(animationFrame);
+        setMounted(true);
     }, []);
+
+    // Share data for TransmitButton
+    const shareData = {
+        title: `${currentTrack.title} - Julian Guggeis`,
+        text: `Check out "${currentTrack.title}" from SYSTEM FLUX by Julian Guggeis`,
+        url: typeof window !== "undefined" ? window.location.href : "",
+    };
+
+    // Swipe gesture handlers
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    }, []);
+
+    const handleTouchMove = useCallback((e: React.TouchEvent) => {
+        const deltaX = e.touches[0].clientX - touchStartX.current;
+        const deltaY = e.touches[0].clientY - touchStartY.current;
+
+        // Only register horizontal swipes (prevent scroll interference)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            swipeX.set(deltaX);
+            if (deltaX > 50) {
+                setSwipeDirection("right");
+            } else if (deltaX < -50) {
+                setSwipeDirection("left");
+            } else {
+                setSwipeDirection(null);
+            }
+        }
+    }, [swipeX]);
+
+    const handleTouchEnd = useCallback(() => {
+        const currentX = swipeX.get();
+        const threshold = 80;
+
+        if (currentX > threshold) {
+            // Swipe right - previous track
+            playPrev();
+            animate(swipeX, 0, { duration: 0.3 });
+        } else if (currentX < -threshold) {
+            // Swipe left - next track
+            playNext();
+            animate(swipeX, 0, { duration: 0.3 });
+        } else {
+            // Snap back
+            animate(swipeX, 0, { duration: 0.2 });
+        }
+
+        setSwipeDirection(null);
+    }, [swipeX, playNext, playPrev]);
+
+    // Cycle through waveform styles on click
+    const cycleWaveformStyle = () => {
+        setWaveformStyle(prev => {
+            if (prev === "mirror") return "bars";
+            if (prev === "bars") return "wave";
+            return "mirror";
+        });
+    };
+
+    const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const bar = progressRef.current;
+        if (!bar) return;
+        const rect = bar.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const percent = clickX / rect.width;
+        seekToPercent(percent);
+    };
+
+    // Keyboard navigation for progress bar
+    const handleProgressKeyDown = (e: React.KeyboardEvent) => {
+        const step = e.shiftKey ? 0.1 : 0.02; // 10% or 2% step
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            seekToPercent(Math.min(1, progress + step));
+        } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            seekToPercent(Math.max(0, progress - step));
+        } else if (e.key === "Home") {
+            e.preventDefault();
+            seekToPercent(0);
+        } else if (e.key === "End") {
+            e.preventDefault();
+            seekToPercent(1);
+        }
+    };
+
+    const agentNumber = String(currentTrackIndex + 1).padStart(2, "0");
 
     return (
         <>
@@ -162,83 +201,260 @@ export default function FluxPlayer() {
                 isOpen={isPlaylistOpen}
                 onClose={() => setIsPlaylistOpen(false)}
                 currentTrack={currentTrack}
-                onSelect={(track, index) => playTrack(index)}
+                onSelect={(_, index) => playTrack(index)}
                 isPlaying={isPlaying}
+                tracks={availableTracks}
+            />
+
+            <FullscreenVisualizer
+                isOpen={isVisualizerOpen}
+                onClose={() => setIsVisualizerOpen(false)}
+            />
+
+            <KeyboardHints
+                isOpen={isHelpOpen}
+                onClose={() => setIsHelpOpen(false)}
             />
 
             <motion.div
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
-                className="fixed bottom-0 left-0 right-0 h-20 bg-void-deep border-t border-signal/20 z-50 flex items-center justify-between px-4 md:px-8 backdrop-blur-md"
+                className="fixed bottom-0 left-0 right-0 z-50"
             >
-                <div className="flex items-center gap-4">
-                    <a
-                        href="https://music.apple.com/de/artist/julian-guggeis/956406644"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-stark/50 hover:text-[#FA243C] hover:scale-110 transition-all duration-300"
-                        title="Apple Music"
+                {/* Swipe indicator overlays - only visible on touch */}
+                {swipeDirection === "left" && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute -top-8 left-1/2 -translate-x-1/2 font-mono text-[10px] text-signal flex items-center gap-2 bg-void-deep/90 px-3 py-1 border border-signal/30"
                     >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm-1-13.06v6.24c-1.042-.625-2.396-.625-3.437 0-1.042.625-1.042 2.708 0 3.333 1.042.625 2.396.625 3.437 0 .521-.313.854-.833.958-1.396h.042v-4.813h3v-3.333h-4z" />
-                        </svg>
-                    </a>
-                    <a
-                        href="https://open.spotify.com/intl-de/artist/7sftGNX7UKWsHgOumCU2fP?si=Z4sahl_QScSUJxhscwlmvg"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-stark/50 hover:text-[#1DB954] hover:scale-110 transition-all duration-300"
-                        title="Spotify"
+                        <SkipForward className="w-3 h-3" />
+                        NEXT_AGENT
+                    </motion.div>
+                )}
+                {swipeDirection === "right" && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute -top-8 left-1/2 -translate-x-1/2 font-mono text-[10px] text-signal flex items-center gap-2 bg-void-deep/90 px-3 py-1 border border-signal/30"
                     >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.434-5.308-1.758-8.793-.963-.335.077-.67-.133-.746-.468-.077-.335.132-.67.468-.746 3.808-.87 7.076-.496 9.72 1.114.294.18.386.563.208.856zm1.226-2.726c-.225.367-.706.482-1.072.257-2.687-1.652-6.785-2.131-9.965-1.166-.413.126-.848-.106-.974-.519-.126-.413.106-.848.519-.974 3.632-1.102 8.147-.568 11.235 1.33.367.225.482.706.257 1.072zm.104-2.835c-3.22-1.913-8.533-2.091-11.601-1.159-.479.146-.995-.126-1.142-.605-.146-.479.127-.995.605-1.142 3.557-1.081 9.396-.869 13.056 1.304.447.265.594.844.329 1.291-.265.447-.844.594-1.291.329z" />
-                        </svg>
-                    </a>
-                </div>
-                <div className="flex items-center gap-4 md:gap-6">
-                    <div className="flex items-center gap-2">
-                        <button onClick={playPrev} className="text-stark/50 hover:text-signal transition-colors">
-                            <SkipBack className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={togglePlay}
-                            className="w-12 h-12 flex items-center justify-center bg-signal text-void hover:bg-stark transition-colors clip-path-polygon"
-                            style={{ clipPath: "polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%)" }}
-                        >
-                            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-                        </button>
-                        <button onClick={playNext} className="text-stark/50 hover:text-signal transition-colors">
-                            <SkipForward className="w-5 h-5" />
-                        </button>
+                        <SkipBack className="w-3 h-3" />
+                        PREV_AGENT
+                    </motion.div>
+                )}
+
+                {/* Main container with border */}
+                <motion.div
+                    className="bg-void-deep/95 backdrop-blur-xl border-t border-signal/30"
+                    style={{ x: swipeX, opacity: swipeOpacity }}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    {/* Top accent line */}
+                    <div className="h-[2px] bg-gradient-to-r from-transparent via-signal to-transparent" />
+
+                    {/* Progress bar - full width at top */}
+                    <div
+                        ref={progressRef}
+                        onClick={handleProgressClick}
+                        onKeyDown={handleProgressKeyDown}
+                        role="slider"
+                        aria-label="Track progress"
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={Math.round((mounted ? progress : 0) * 100)}
+                        aria-valuetext={`${formatTime(mounted ? currentTime : 0)} of ${formatTime(duration)}`}
+                        tabIndex={0}
+                        className="h-1 bg-stark/10 cursor-pointer relative group focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2 focus-visible:ring-offset-void-deep"
+                    >
+                        <motion.div
+                            className="absolute inset-y-0 left-0 bg-signal"
+                            style={{ width: `${(mounted ? progress : 0) * 100}%` }}
+                            layoutId="progress"
+                        />
+                        <div
+                            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-signal rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_rgba(255,69,0,0.8)]"
+                            style={{ left: `calc(${(mounted ? progress : 0) * 100}% - 6px)` }}
+                        />
+                        {/* Glow effect */}
+                        {isPlaying && (
+                            <div
+                                className="absolute inset-y-0 left-0 bg-signal/20 blur-sm"
+                                style={{ width: `${(mounted ? progress : 0) * 100}%` }}
+                            />
+                        )}
                     </div>
 
-                    <div className="hidden md:block font-mono text-xs overflow-hidden max-w-[200px] md:max-w-xs">
-                        <p className="text-stark/50 text-[10px] tracking-widest">NOW_PLAYING</p>
-                        <div className="relative h-5 w-full overflow-hidden">
-                            <p className="text-signal whitespace-nowrap animate-marquee">{currentTrack.title}</p>
+                    {/* Main player content */}
+                    <div className="px-4 md:px-6 py-3">
+                        <div className="flex items-center justify-between gap-4">
+                            {/* Left: Agent Info */}
+                            <div className="flex items-center gap-4 min-w-0 flex-1">
+                                {/* Agent badge */}
+                                <div className="hidden sm:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5">
+                                    <span className="font-mono text-[10px] text-stark/50">AGENT</span>
+                                    <span className="font-mono text-xl text-signal font-bold">{agentNumber}</span>
+                                </div>
+
+                                {/* Track info */}
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <AgentStatus isActive={isPlaying} />
+                                        <span className="font-mono text-[10px] text-stark/60 hidden md:inline">
+                                            {formatTime(mounted ? currentTime : 0)} / {formatTime(duration)}
+                                        </span>
+                                    </div>
+                                    <div className="font-mono text-sm text-stark truncate">
+                                        <span className="text-stark/50">&gt; </span>
+                                        <TypewriterText
+                                            text={currentTrack.title.toUpperCase()}
+                                            speed={40}
+                                            cursor={true}
+                                            className={cn(isPlaying && "text-signal")}
+                                        />
+                                    </div>
+                                    <div className="font-mono text-[10px] text-stark/60 mt-0.5">
+                                        {isPlaying ? (
+                                            <span>executing audio_stream<ThinkingDots /></span>
+                                        ) : (
+                                            <span>awaiting_input...</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Center: Audio Waveform Visualizer (hidden on mobile) */}
+                            <div
+                                className="hidden lg:block flex-1 max-w-md px-4 cursor-pointer"
+                                onClick={cycleWaveformStyle}
+                                onKeyDown={(e) => e.key === "Enter" && cycleWaveformStyle()}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Audio visualization - ${waveformStyle} style. Press Enter to change style.`}
+                            >
+                                <div className="relative">
+                                    <AudioWaveform
+                                        style={waveformStyle}
+                                        height={40}
+                                        barCount={48}
+                                        responsive={true}
+                                        className="opacity-90"
+                                    />
+                                    <div className="absolute -top-3 left-0 font-mono text-[8px] text-stark/30">
+                                        {waveformStyle === "mirror" && "STEREO_FIELD"}
+                                        {waveformStyle === "bars" && "FREQ_SPECTRUM"}
+                                        {waveformStyle === "wave" && "WAVEFORM"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right: Controls */}
+                            <div className="flex items-center gap-2 md:gap-4">
+                                {/* Playback controls */}
+                                <div className="flex items-center gap-1" role="group" aria-label="Playback controls">
+                                    <button
+                                        onClick={playPrev}
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors"
+                                        aria-label="Previous track"
+                                    >
+                                        <SkipBack className="w-4 h-4" aria-hidden="true" />
+                                    </button>
+
+                                    <button
+                                        onClick={togglePlay}
+                                        className={cn(
+                                            "w-12 h-12 flex items-center justify-center border-2 transition-all",
+                                            isPlaying
+                                                ? "border-signal bg-signal/10 text-signal shadow-[0_0_20px_rgba(255,69,0,0.3)]"
+                                                : "border-stark/30 text-stark/70 hover:border-signal hover:text-signal"
+                                        )}
+                                        aria-label={isPlaying ? "Pause" : "Play"}
+                                        aria-pressed={isPlaying}
+                                    >
+                                        {isPlaying ? (
+                                            <Pause className="w-5 h-5" aria-hidden="true" />
+                                        ) : (
+                                            <Play className="w-5 h-5 ml-0.5" aria-hidden="true" />
+                                        )}
+                                    </button>
+
+                                    <button
+                                        onClick={playNext}
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors"
+                                        aria-label="Next track"
+                                    >
+                                        <SkipForward className="w-4 h-4" aria-hidden="true" />
+                                    </button>
+                                </div>
+
+                                {/* Secondary controls */}
+                                <div className="flex items-center gap-2 border-l border-stark/10 pl-2 md:pl-4" role="group" aria-label="Additional controls">
+                                    <button
+                                        onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
+                                        className={cn(
+                                            "p-2 transition-colors",
+                                            isPlaylistOpen ? "text-signal" : "text-stark/50 hover:text-signal"
+                                        )}
+                                        aria-label={`Track list, ${availableTracks.length} tracks available`}
+                                        aria-expanded={isPlaylistOpen}
+                                        aria-controls="track-list-panel"
+                                    >
+                                        <List className="w-5 h-5" aria-hidden="true" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsMuted(!isMuted)}
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden sm:block"
+                                        aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+                                        aria-pressed={isMuted}
+                                    >
+                                        {isMuted ? (
+                                            <VolumeX className="w-5 h-5" aria-hidden="true" />
+                                        ) : (
+                                            <Volume2 className="w-5 h-5" aria-hidden="true" />
+                                        )}
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsVisualizerOpen(true)}
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden sm:block"
+                                        aria-label="Open fullscreen visualizer (press F)"
+                                    >
+                                        <Maximize2 className="w-5 h-5" aria-hidden="true" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsHelpOpen(true)}
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden sm:block"
+                                        aria-label="Show keyboard shortcuts (press ?)"
+                                    >
+                                        <Keyboard className="w-5 h-5" aria-hidden="true" />
+                                    </button>
+
+                                    <TransmitButton
+                                        shareData={shareData}
+                                        compact={false}
+                                        className="hidden sm:block"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex-1 mx-4 md:mx-12 h-full flex items-center">
-                    <canvas ref={canvasRef} width={400} height={60} className="w-full h-full opacity-80 mix-blend-screen" />
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
-                        className={isPlaying && isPlaylistOpen ? "text-signal" : "text-stark/50 hover:text-signal"}
-                    >
-                        <ListMusic className="w-6 h-6" />
-                    </button>
-
-                    <button
-                        onClick={() => setIsMuted(!isMuted)}
-                        className="text-stark/50 hover:text-signal hidden md:block"
-                    >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
-                </div>
+                    {/* Bottom info bar */}
+                    <div className="px-4 md:px-6 py-1 border-t border-stark/5 flex justify-between items-center">
+                        <div className="font-mono text-[9px] text-stark/60">
+                            FLUX_OS v1.0 // AGENT_NETWORK
+                        </div>
+                        <div className="font-mono text-[9px] text-stark/60 hidden sm:block">
+                            {availableTracks.length} AGENTS_LOADED
+                        </div>
+                        <div className="font-mono text-[9px] text-signal/70 sm:hidden">
+                            ← SWIPE →
+                        </div>
+                    </div>
+                </motion.div>
             </motion.div>
         </>
     );

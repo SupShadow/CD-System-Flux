@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sliders } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAudio } from "@/contexts/AudioContext";
 
 interface StemProps {
     name: string;
@@ -36,21 +37,22 @@ function StemControl({ name, active, onToggle }: StemProps) {
 
 export default function StemMixer() {
     const [isOpen, setIsOpen] = useState(false);
-    const [stems, setStems] = useState({
-        DRUMS: true,
-        BASS: true,
-        SYNTH: true,
-        FX: true,
-    });
+    const { stems, toggleStem, isPlaying, currentTrack, isInitialized, initAudio } = useAudio();
 
-    const toggleStem = (key: keyof typeof stems) => {
-        setStems(prev => ({ ...prev, [key]: !prev[key] }));
+    const handleOpen = () => {
+        if (!isInitialized) {
+            initAudio();
+        }
+        setIsOpen(true);
     };
+
+    // Count active stems for status display
+    const activeStemCount = Object.values(stems).filter(Boolean).length;
 
     return (
         <>
             <button
-                onClick={() => setIsOpen(true)}
+                onClick={handleOpen}
                 className="group relative px-6 py-3 bg-void-deep border border-signal/50 hover:bg-signal/10 transition-all overflow-hidden"
             >
                 <div className="absolute inset-0 bg-signal/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -76,11 +78,22 @@ export default function StemMixer() {
                                 <X className="w-6 h-6" />
                             </button>
 
-                            <div className="text-center mb-12">
+                            <div className="text-center mb-8">
                                 <h2 className="text-3xl md:text-5xl font-bold glitch-text mb-2" data-text="STEM DECONSTRUCTION">
                                     STEM DECONSTRUCTION
                                 </h2>
                                 <p className="font-mono text-xs text-stark/50">ISOLATE THE SIGNAL // BREAK THE CODE</p>
+                            </div>
+
+                            {/* Current track info */}
+                            <div className="text-center mb-8">
+                                <p className="font-mono text-xs text-stark/30 mb-1">ACTIVE_TRACK:</p>
+                                <p className={cn(
+                                    "font-mono text-sm",
+                                    isPlaying ? "text-signal" : "text-stark/50"
+                                )}>
+                                    {isPlaying ? currentTrack.title : "// NO SIGNAL //"}
+                                </p>
                             </div>
 
                             <div className="flex justify-center gap-4 md:gap-12">
@@ -95,8 +108,11 @@ export default function StemMixer() {
                             </div>
 
                             <div className="mt-12 text-center font-mono text-xs text-stark/30">
-                                <p>AUDIO_ENGINE: ONLINE</p>
-                                <p>LATENCY: 12ms</p>
+                                <p>AUDIO_ENGINE: {isInitialized ? "ONLINE" : "STANDBY"}</p>
+                                <p>ACTIVE_STEMS: {activeStemCount}/4</p>
+                                <p className="mt-2 text-stark/20">
+                                    {!isPlaying && "[ START PLAYBACK TO HEAR CHANGES ]"}
+                                </p>
                             </div>
                         </div>
                     </motion.div>

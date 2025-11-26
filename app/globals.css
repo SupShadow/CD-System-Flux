@@ -112,9 +112,209 @@
   }
 }
 
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   background-color: var(--color-void);
   color: var(--color-stark);
   font-family: var(--font-sans);
   overflow-x: hidden;
+}
+
+/* Scroll-linked section reveal */
+.scroll-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.scroll-section.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Parallax container styles */
+.parallax-container {
+  perspective: 1px;
+  transform-style: preserve-3d;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.parallax-layer-back {
+  transform: translateZ(-1px) scale(2);
+}
+
+.parallax-layer-front {
+  transform: translateZ(0);
+}
+
+/* Skeleton Wave Animation */
+.skeleton-wave {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-wave::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 69, 0, 0.08),
+    transparent
+  );
+  animation: skeleton-wave 1.5s infinite;
+}
+
+@keyframes skeleton-wave {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY STYLES
+   ============================================ */
+
+/* Focus Visible - Keyboard Navigation Styles */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* Custom focus styles for interactive elements */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 69, 0, 0.2);
+}
+
+/* Input focus styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 0;
+  border-color: var(--color-signal);
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-signal);
+  color: var(--color-void);
+  padding: 8px 16px;
+  z-index: 9999;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================
+   REDUCED MOTION - Respect user preferences
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable parallax effects */
+  .parallax-container,
+  .parallax-layer-back,
+  .parallax-layer-front {
+    transform: none !important;
+    perspective: none !important;
+  }
+
+  /* Disable glitch text animations */
+  .glitch-text::before,
+  .glitch-text::after {
+    animation: none !important;
+    display: none;
+  }
+
+  /* Disable skeleton wave animation */
+  .skeleton-wave::after {
+    animation: none !important;
+    display: none;
+  }
+
+  /* Disable scroll section transitions */
+  .scroll-section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================ */
+@media (prefers-contrast: high) {
+  :root {
+    --color-signal: #FF6B35;
+    --color-stark: #FFFFFF;
+    --color-void: #000000;
+  }
+
+  /* Ensure borders are visible */
+  * {
+    border-color: currentColor !important;
+  }
+
+  /* Improve text contrast */
+  .text-stark\/30,
+  .text-stark\/40,
+  .text-stark\/50 {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.8);
+  }
 }
