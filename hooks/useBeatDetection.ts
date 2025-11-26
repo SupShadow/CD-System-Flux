@@ -44,7 +44,7 @@ export function useBeatDetection(
     const prevBassLevelRef = useRef(0);
     const avgBassRef = useRef(0);
     const frameIdRef = useRef<number | null>(null);
-    const dataArrayRef = useRef<Uint8Array | null>(null);
+    const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
     const analyze = useCallback(() => {
         const analyser = analyserRef.current;
