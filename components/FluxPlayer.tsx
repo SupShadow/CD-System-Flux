@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, SkipBack, SkipForward, List, Volume2, VolumeX, Maximize2, Keyboard } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, List, Volume2, Volume1, VolumeX, Maximize2, Keyboard } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useAudio } from "@/contexts/AudioContext";
 import { useKeyboardShortcuts } from "@/hooks";
@@ -9,7 +9,6 @@ import TrackList from "./TrackList";
 import FullscreenVisualizer from "./FullscreenVisualizer";
 import KeyboardHints from "./KeyboardHints";
 import TypewriterText from "./TypewriterText";
-import AudioWaveform from "./AudioWaveform";
 import TransmitButton from "./TransmitButton";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +69,8 @@ export default function FluxPlayer() {
         playTrack,
         isMuted,
         setIsMuted,
+        volume,
+        setVolume,
         duration,
         currentTime,
         progress,
@@ -81,7 +82,6 @@ export default function FluxPlayer() {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
-    const [waveformStyle, setWaveformStyle] = useState<"bars" | "wave" | "mirror">("mirror");
     const progressRef = useRef<HTMLDivElement>(null);
     const touchStartX = useRef<number>(0);
     const touchStartY = useRef<number>(0);
@@ -156,15 +156,6 @@ export default function FluxPlayer() {
 
         setSwipeDirection(null);
     }, [swipeX, playNext, playPrev]);
-
-    // Cycle through waveform styles on click
-    const cycleWaveformStyle = () => {
-        setWaveformStyle(prev => {
-            if (prev === "mirror") return "bars";
-            if (prev === "bars") return "wave";
-            return "mirror";
-        });
-    };
 
     const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
         const bar = progressRef.current;
@@ -243,9 +234,9 @@ export default function FluxPlayer() {
                     </motion.div>
                 )}
 
-                {/* Main container with border */}
+                {/* Main container with border - beat reactive */}
                 <motion.div
-                    className="bg-void-deep/95 backdrop-blur-xl border-t border-signal/30"
+                    className="bg-void-deep/95 backdrop-blur-xl border-t border-signal/30 beat-border"
                     style={{ x: swipeX, opacity: swipeOpacity }}
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
@@ -291,8 +282,8 @@ export default function FluxPlayer() {
                         <div className="flex items-center justify-between gap-4">
                             {/* Left: Agent Info */}
                             <div className="flex items-center gap-4 min-w-0 flex-1">
-                                {/* Agent badge */}
-                                <div className="hidden sm:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5">
+                                {/* Agent badge - beat reactive */}
+                                <div className="hidden sm:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5 beat-border">
                                     <span className="font-mono text-[10px] text-stark/50">AGENT</span>
                                     <span className="font-mono text-xl text-signal font-bold">{agentNumber}</span>
                                 </div>
@@ -320,31 +311,6 @@ export default function FluxPlayer() {
                                         ) : (
                                             <span>awaiting_input...</span>
                                         )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Center: Audio Waveform Visualizer (hidden on mobile) */}
-                            <div
-                                className="hidden lg:block flex-1 max-w-md px-4 cursor-pointer"
-                                onClick={cycleWaveformStyle}
-                                onKeyDown={(e) => e.key === "Enter" && cycleWaveformStyle()}
-                                role="button"
-                                tabIndex={0}
-                                aria-label={`Audio visualization - ${waveformStyle} style. Press Enter to change style.`}
-                            >
-                                <div className="relative">
-                                    <AudioWaveform
-                                        style={waveformStyle}
-                                        height={40}
-                                        barCount={48}
-                                        responsive={true}
-                                        className="opacity-90"
-                                    />
-                                    <div className="absolute -top-3 left-0 font-mono text-[8px] text-stark/30">
-                                        {waveformStyle === "mirror" && "STEREO_FIELD"}
-                                        {waveformStyle === "bars" && "FREQ_SPECTRUM"}
-                                        {waveformStyle === "wave" && "WAVEFORM"}
                                     </div>
                                 </div>
                             </div>
@@ -403,18 +369,49 @@ export default function FluxPlayer() {
                                         <List className="w-5 h-5" aria-hidden="true" />
                                     </button>
 
-                                    <button
-                                        onClick={() => setIsMuted(!isMuted)}
-                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden sm:block"
-                                        aria-label={isMuted ? "Unmute audio" : "Mute audio"}
-                                        aria-pressed={isMuted}
-                                    >
-                                        {isMuted ? (
-                                            <VolumeX className="w-5 h-5" aria-hidden="true" />
-                                        ) : (
-                                            <Volume2 className="w-5 h-5" aria-hidden="true" />
-                                        )}
-                                    </button>
+                                    {/* Volume control group */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setIsMuted(!isMuted)}
+                                            className="p-2 text-stark/50 hover:text-signal transition-colors"
+                                            aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+                                            aria-pressed={isMuted}
+                                        >
+                                            {isMuted || volume === 0 ? (
+                                                <VolumeX className="w-5 h-5" aria-hidden="true" />
+                                            ) : volume < 0.5 ? (
+                                                <Volume1 className="w-5 h-5" aria-hidden="true" />
+                                            ) : (
+                                                <Volume2 className="w-5 h-5" aria-hidden="true" />
+                                            )}
+                                        </button>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={isMuted ? 0 : volume}
+                                            onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                            className="w-20 h-1 bg-stark/20 rounded-full appearance-none cursor-pointer
+                                                [&::-webkit-slider-thumb]:appearance-none
+                                                [&::-webkit-slider-thumb]:w-3
+                                                [&::-webkit-slider-thumb]:h-3
+                                                [&::-webkit-slider-thumb]:rounded-full
+                                                [&::-webkit-slider-thumb]:bg-signal
+                                                [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,69,0,0.6)]
+                                                [&::-webkit-slider-thumb]:cursor-pointer
+                                                [&::-moz-range-thumb]:w-3
+                                                [&::-moz-range-thumb]:h-3
+                                                [&::-moz-range-thumb]:rounded-full
+                                                [&::-moz-range-thumb]:bg-signal
+                                                [&::-moz-range-thumb]:border-0
+                                                [&::-moz-range-thumb]:cursor-pointer"
+                                            aria-label="Volume"
+                                        />
+                                    </div>
+                                    <span className="hidden sm:inline font-mono text-[9px] text-stark/40">
+                                        {Math.round((isMuted ? 0 : volume) * 100)}%
+                                    </span>
 
                                     <button
                                         onClick={() => setIsVisualizerOpen(true)}
@@ -445,10 +442,15 @@ export default function FluxPlayer() {
                     {/* Bottom info bar */}
                     <div className="px-4 md:px-6 py-1 border-t border-stark/5 flex justify-between items-center">
                         <div className="font-mono text-[9px] text-stark/60">
-                            FLUX_OS v1.0 // AGENT_NETWORK
+                            FLUX_OS v1.0
+                        </div>
+                        <div className="font-mono text-[9px] text-stark/40 hidden sm:flex items-center gap-2">
+                            <a href="https://derguggeis.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">IMPRESSUM</a>
+                            <span className="text-stark/20">//</span>
+                            <a href="https://derguggeis.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">DATENSCHUTZ</a>
                         </div>
                         <div className="font-mono text-[9px] text-stark/60 hidden sm:block">
-                            {availableTracks.length} AGENTS_LOADED
+                            {availableTracks.length} AGENTS
                         </div>
                         <div className="font-mono text-[9px] text-signal/70 sm:hidden">
                             ← SWIPE →

@@ -35,7 +35,7 @@ export default function SafeModeToggle() {
                 transition={{ delay: 1 }}
                 onClick={toggleSafeMode}
                 className={cn(
-                    "fixed bottom-24 right-4 z-40 p-3 border backdrop-blur-sm transition-all",
+                    "fixed bottom-40 right-4 md:bottom-44 md:right-6 z-40 p-3 border backdrop-blur-sm transition-all",
                     "font-mono text-[10px] flex items-center gap-2",
                     safeMode
                         ? "border-signal/50 bg-signal/10 text-signal"

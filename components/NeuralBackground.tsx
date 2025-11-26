@@ -246,19 +246,20 @@ export default function NeuralBackground() {
                 />
             ))}
 
-            {/* Floating particles - reduced on mobile */}
+            {/* Floating particles - reduced on mobile, fixed orange color */}
             {[...Array(particleCount)].map((_, i) => (
                 <motion.div
                     key={`particle-${i}`}
-                    className="absolute w-1 h-1 rounded-full bg-signal/60"
+                    className="absolute w-1 h-1 rounded-full"
                     style={{
                         left: `${10 + i * 7}%`,
                         top: `${15 + (i % 4) * 20}%`,
+                        background: "rgba(255, 69, 0, 0.6)",
                     }}
                     animate={isVisible ? {
                         y: [0, -100, 0],
                         x: [0, 30, 0],
-                        opacity: [0, 0.8, 0],
+                        opacity: [0, 0.6, 0],
                         scale: [0.5, 1, 0.5],
                     } : {}}
                     transition={{
@@ -269,18 +270,7 @@ export default function NeuralBackground() {
                     }}
                 />
             ))}
-
-            {/* Grid overlay - very subtle */}
-            <div
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                    backgroundImage: `
-                        linear-gradient(rgba(255,69,0,0.5) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,69,0,0.5) 1px, transparent 1px)
-                    `,
-                    backgroundSize: "50px 50px",
-                }}
-            />
+            {/* Grid overlay removed - handled by ParallaxLayers */}
         </div>
     );
 }

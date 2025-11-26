@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAudio } from "@/contexts/AudioContext";
+import { useBeat } from "@/contexts/BeatContext";
 
 // Helper to convert hex to RGB
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -17,15 +18,19 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 }
 
 export default function TrackThemeProvider() {
-    const { currentTrack } = useAudio();
+    const { currentTrack, isPlaying } = useAudio();
+    const { isBeat, beatIntensity, bassLevel, energy } = useBeat();
     const [mounted, setMounted] = useState(false);
     const [prevColor, setPrevColor] = useState<string | null>(null);
     const [showFlash, setShowFlash] = useState(false);
+    const [showBeatFlash, setShowBeatFlash] = useState(false);
+    const lastBeatRef = useRef(0);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
+    // Track color change effect
     useEffect(() => {
         if (!mounted) return;
 
@@ -46,6 +51,30 @@ export default function TrackThemeProvider() {
             setPrevColor(color);
         }
     }, [currentTrack.color, mounted, prevColor]);
+
+    // Beat reactive CSS variables
+    useEffect(() => {
+        if (!mounted) return;
+
+        // Set beat-reactive CSS variables
+        document.documentElement.style.setProperty("--beat-intensity", beatIntensity.toFixed(3));
+        document.documentElement.style.setProperty("--bass-level", bassLevel.toFixed(3));
+        document.documentElement.style.setProperty("--energy", energy.toFixed(3));
+        document.documentElement.style.setProperty("--beat-scale", (1 + beatIntensity * 0.05).toFixed(3));
+        document.documentElement.style.setProperty("--beat-glow", (beatIntensity * 20).toFixed(1));
+    }, [mounted, beatIntensity, bassLevel, energy]);
+
+    // Beat flash effect (throttled)
+    useEffect(() => {
+        if (isBeat && isPlaying) {
+            const now = Date.now();
+            if (now - lastBeatRef.current > 150) { // Throttle beat flashes
+                lastBeatRef.current = now;
+                setShowBeatFlash(true);
+                setTimeout(() => setShowBeatFlash(false), 100);
+            }
+        }
+    }, [isBeat, isPlaying]);
 
     if (!mounted) return null;
 
@@ -111,6 +140,46 @@ export default function TrackThemeProvider() {
                 ::-moz-selection {
                     background: rgba(var(--track-color-rgb), 0.4) !important;
                 }
+
+                /* Beat-reactive CSS variables defaults */
+                :root {
+                    --beat-intensity: 0;
+                    --bass-level: 0;
+                    --energy: 0;
+                    --beat-scale: 1;
+                    --beat-glow: 0;
+                }
+
+                /* Beat-reactive utility classes */
+                .beat-pulse {
+                    transform: scale(var(--beat-scale));
+                    transition: transform 0.05s ease-out;
+                }
+
+                .beat-glow {
+                    filter: drop-shadow(0 0 calc(var(--beat-glow) * 1px) var(--track-color));
+                    transition: filter 0.05s ease-out;
+                }
+
+                .beat-border {
+                    border-color: rgba(var(--track-color-rgb), calc(0.3 + var(--beat-intensity) * 0.5)) !important;
+                    box-shadow: 0 0 calc(var(--beat-glow) * 0.5px) rgba(var(--track-color-rgb), calc(var(--beat-intensity) * 0.3));
+                    transition: border-color 0.05s ease-out, box-shadow 0.05s ease-out;
+                }
+
+                .energy-opacity {
+                    opacity: calc(0.5 + var(--energy) * 0.5);
+                    transition: opacity 0.1s ease-out;
+                }
+
+                /* Beat-reactive background glow */
+                .beat-bg-glow {
+                    background: radial-gradient(
+                        circle at center,
+                        rgba(var(--track-color-rgb), calc(var(--beat-intensity) * 0.15)) 0%,
+                        transparent 70%
+                    );
+                }
             `}</style>
 
             {/* Color transition flash effect */}
@@ -129,13 +198,29 @@ export default function TrackThemeProvider() {
                 )}
             </AnimatePresence>
 
-            {/* Ambient glow that changes with track */}
-            <motion.div
-                className="fixed inset-0 pointer-events-none z-[1]"
-                animate={{
-                    background: `radial-gradient(ellipse at 50% 100%, rgba(var(--track-color-rgb), 0.05) 0%, transparent 50%)`,
+            {/* Beat flash effect - subtle pulse on beat */}
+            <AnimatePresence>
+                {showBeatFlash && isPlaying && (
+                    <motion.div
+                        className="fixed inset-0 pointer-events-none z-[2]"
+                        initial={{ opacity: 0.08 }}
+                        animate={{ opacity: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.1 }}
+                        style={{
+                            background: `radial-gradient(circle at 50% 80%, ${currentTrack.color} 0%, transparent 50%)`,
+                        }}
+                    />
+                )}
+            </AnimatePresence>
+
+            {/* Ambient glow that reacts to bass level */}
+            <div
+                className="fixed inset-0 pointer-events-none z-[1] transition-opacity duration-100"
+                style={{
+                    background: `radial-gradient(ellipse at 50% 100%, rgba(var(--track-color-rgb), ${isPlaying ? 0.03 + bassLevel * 0.08 : 0.03}) 0%, transparent 50%)`,
+                    opacity: 1,
                 }}
-                transition={{ duration: 1, ease: "easeInOut" }}
             />
         </>
     );

@@ -39,6 +39,7 @@ export interface AudioEngineState {
 
     // Volume
     isMuted: boolean;
+    volume: number; // 0-1
 
     // Stem control
     stems: StemState;
@@ -61,6 +62,7 @@ export interface AudioEngineActions {
     seek: (time: number) => void;
     seekToPercent: (percent: number) => void;
     setIsMuted: (muted: boolean) => void;
+    setVolume: (volume: number) => void;
     toggleStem: (stem: keyof StemState) => void;
     initAudio: () => void;
     clearError: () => void;
@@ -80,6 +82,7 @@ export function useAudioEngine(): AudioEngine {
     // State
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMutedState] = useState(false);
+    const [volume, setVolumeState] = useState(0.8); // Default 80%
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState<AudioError | null>(null);
@@ -97,6 +100,7 @@ export function useAudioEngine(): AudioEngine {
     const audioElementRef = useRef<HTMLAudioElement | null>(null);
     const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
     const masterGainRef = useRef<GainNode | null>(null);
+    const trackGainRef = useRef<GainNode | null>(null); // Per-track volume normalization
     const analyserRef = useRef<AnalyserNode | null>(null);
     const onErrorRef = useRef<((error: AudioError) => void) | null>(null);
     const stemGainsRef = useRef<StemGains>({
@@ -157,6 +161,10 @@ export function useAudioEngine(): AudioEngine {
             const masterGain = ctx.createGain();
             masterGainRef.current = masterGain;
 
+            // Create track gain (for per-track volume normalization)
+            const trackGain = ctx.createGain();
+            trackGainRef.current = trackGain;
+
             // Create analyser
             const analyser = ctx.createAnalyser();
             analyser.fftSize = 256;
@@ -211,13 +219,14 @@ export function useAudioEngine(): AudioEngine {
             stemFiltersRef.current.FX = fxFilter;
             stemGainsRef.current.FX = fxGain;
 
-            // Connect stem gains to master
-            drumsGain.connect(masterGain);
-            bassGain.connect(masterGain);
-            synthGain.connect(masterGain);
-            fxGain.connect(masterGain);
+            // Connect stem gains to track gain (for per-track volume)
+            drumsGain.connect(trackGain);
+            bassGain.connect(trackGain);
+            synthGain.connect(trackGain);
+            fxGain.connect(trackGain);
 
-            // Master → Analyser → Destination
+            // Track Gain → Master Gain → Analyser → Destination
+            trackGain.connect(masterGain);
             masterGain.connect(analyser);
             analyser.connect(ctx.destination);
 
@@ -302,6 +311,16 @@ export function useAudioEngine(): AudioEngine {
 
             const track = availableTracks[index];
             if (!track) return;
+
+            // Apply per-track gain (volume normalization)
+            if (trackGainRef.current) {
+                const trackGainValue = track.gain ?? 1.0; // Default to 1.0 if not specified
+                trackGainRef.current.gain.setTargetAtTime(
+                    trackGainValue,
+                    ctx.currentTime,
+                    0.05
+                );
+            }
 
             const audio = new Audio();
             audio.crossOrigin = "anonymous";
@@ -500,7 +519,7 @@ export function useAudioEngine(): AudioEngine {
             if (masterGainRef.current) {
                 try {
                     masterGainRef.current.gain.setTargetAtTime(
-                        muted ? 0 : 1,
+                        muted ? 0 : volume,
                         audioContextRef.current?.currentTime || 0,
                         0.05
                     );
@@ -512,7 +531,36 @@ export function useAudioEngine(): AudioEngine {
                 }
             }
         },
-        [handleError]
+        [handleError, volume]
+    );
+
+    // Set volume (0-1)
+    const setVolume = useCallback(
+        (newVolume: number) => {
+            const clampedVolume = Math.max(0, Math.min(1, newVolume));
+            setVolumeState(clampedVolume);
+
+            // Auto-unmute when adjusting volume
+            if (clampedVolume > 0 && isMuted) {
+                setIsMutedState(false);
+            }
+
+            if (masterGainRef.current && !isMuted) {
+                try {
+                    masterGainRef.current.gain.setTargetAtTime(
+                        clampedVolume,
+                        audioContextRef.current?.currentTime || 0,
+                        0.05
+                    );
+                } catch (err) {
+                    handleError({
+                        type: "playback",
+                        message: "Failed to change volume",
+                    });
+                }
+            }
+        },
+        [handleError, isMuted]
     );
 
     // Seek to specific time
@@ -552,6 +600,7 @@ export function useAudioEngine(): AudioEngine {
         currentTime,
         progress,
         isMuted,
+        volume,
         stems,
         isInitialized,
         error,
@@ -565,6 +614,7 @@ export function useAudioEngine(): AudioEngine {
         seek,
         seekToPercent,
         setIsMuted,
+        setVolume,
         toggleStem,
         initAudio,
         clearError,

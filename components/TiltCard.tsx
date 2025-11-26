@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, ReactNode } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useAccessibility } from "@/contexts/AccessibilityContext";
 
 interface TiltCardProps {
     children: ReactNode;
@@ -20,6 +21,10 @@ export default function TiltCard({
 }: TiltCardProps) {
     const cardRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
+    const { prefersReducedMotion, safeMode } = useAccessibility();
+
+    // Disable 3D effects if user prefers reduced motion
+    const disableEffects = prefersReducedMotion || safeMode;
 
     // Motion values for smooth animation
     const mouseX = useMotionValue(0.5);
@@ -55,6 +60,15 @@ export default function TiltCard({
         mouseX.set(0.5);
         mouseY.set(0.5);
     }, [mouseX, mouseY]);
+
+    // If motion is disabled, render a simple container without effects
+    if (disableEffects) {
+        return (
+            <div ref={cardRef} className={`relative ${className}`}>
+                {children}
+            </div>
+        );
+    }
 
     return (
         <motion.div

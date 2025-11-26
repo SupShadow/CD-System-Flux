@@ -29,7 +29,10 @@ export default function InfectionCounter() {
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="fixed bottom-20 left-4 md:bottom-24 md:left-6 z-40"
+            className="fixed bottom-28 left-4 md:bottom-32 md:left-6 z-40"
+            role="status"
+            aria-live="polite"
+            aria-label="Netzwerk-Verbreitungsstatus"
         >
             <div className="font-mono text-[10px] bg-void-deep/90 backdrop-blur-sm border border-signal/20 overflow-hidden">
                 {/* Header */}
@@ -41,16 +44,17 @@ export default function InfectionCounter() {
                             opacity: [1, 0.5, 1]
                         } : {}}
                         transition={{ duration: 0.3 }}
+                        aria-hidden="true"
                     />
-                    <span className="text-signal/80 tracking-wider">NETWORK_SPREAD</span>
+                    <span className="text-signal/80 tracking-wider" aria-hidden="true">NETWORK_SPREAD</span>
                 </div>
 
                 {/* Content */}
                 <div className="px-3 py-2 flex items-center gap-3">
-                    <Wifi className="w-3 h-3 text-signal/50" />
+                    <Wifi className="w-3 h-3 text-signal/50" aria-hidden="true" />
                     <div>
-                        <div className="text-stark/50 text-[9px]">NODES_CONNECTED</div>
-                        <div className="text-signal font-bold tabular-nums">
+                        <div className="text-stark/50 text-[9px]" aria-hidden="true">NODES_CONNECTED</div>
+                        <div className="text-signal font-bold tabular-nums" aria-label={`${nodes.toLocaleString()} verbundene Knoten`}>
                             {nodes.toLocaleString()}
                         </div>
                     </div>

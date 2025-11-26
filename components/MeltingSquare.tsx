@@ -4,7 +4,11 @@ import { motion } from "framer-motion";
 
 export default function MeltingSquare() {
     return (
-        <div className="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center">
+        <div
+            className="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center beat-pulse"
+            aria-hidden="true"
+            role="presentation"
+        >
             {/* SVG Filter Definition */}
             <svg className="absolute w-0 h-0">
                 <defs>
@@ -80,8 +84,8 @@ export default function MeltingSquare() {
                 <div className="absolute inset-0 bg-signal mix-blend-exclusion opacity-50 animate-pulse"></div>
             </motion.div>
 
-            {/* Background Glow/Bleed */}
-            <div className="absolute inset-0 bg-signal/20 blur-3xl rounded-full opacity-20 animate-pulse"></div>
+            {/* Background Glow/Bleed - beat reactive */}
+            <div className="absolute inset-0 bg-signal/20 blur-3xl rounded-full opacity-20 animate-pulse energy-opacity"></div>
         </div>
     );
 }

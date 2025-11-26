@@ -4,15 +4,23 @@ import Terminal from "@/components/Terminal";
 import InfectionCounter from "@/components/InfectionCounter";
 import FluxPlayer from "@/components/FluxPlayer";
 import SingleLaunch from "@/components/SingleLaunch";
-import SystemStatus from "@/components/SystemStatus";
-import MerchTeaser from "@/components/MerchTeaser";
+import Connect from "@/components/Connect";
 import ScrollReveal from "@/components/ScrollReveal";
 import DeploymentCountdown from "@/components/DeploymentCountdown";
 import { ScrollIndicator } from "@/components/ScrollProgress";
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4 md:p-24 gap-16 md:gap-32 pb-32 relative">
+    <>
+      {/* Skip Navigation for keyboard users */}
+      <a href="#main-content" className="skip-link">
+        Zum Hauptinhalt springen
+      </a>
+
+      <main
+        id="main-content"
+        className="min-h-screen flex flex-col items-center justify-center p-4 md:p-24 gap-16 md:gap-32 pb-40 relative"
+      >
       <KonamiCode />
       <Terminal />
       <InfectionCounter />
@@ -51,15 +59,10 @@ export default function Home() {
         <SingleLaunch />
       </ScrollReveal>
 
-      {/* MERCH & STATUS */}
-      <section className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
-        <ScrollReveal animation="slideRight" delay={0}>
-          <MerchTeaser />
-        </ScrollReveal>
-        <ScrollReveal animation="slideLeft" delay={0.15}>
-          <SystemStatus />
-        </ScrollReveal>
-      </section>
+      {/* CONNECT SECTION */}
+      <ScrollReveal animation="fade" delay={0.2} className="w-full max-w-3xl">
+        <Connect />
+      </ScrollReveal>
 
       <ScrollReveal animation="fade" delay={0.3} className="w-full max-w-5xl">
         <footer className="border-t border-stark/10 pt-8 font-mono text-xs text-stark/60">
@@ -94,6 +97,7 @@ export default function Home() {
           </div>
         </footer>
       </ScrollReveal>
-    </main>
+      </main>
+    </>
   );
 }

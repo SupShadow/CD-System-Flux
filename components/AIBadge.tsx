@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Zap } from "lucide-react";
 
 export default function AIBadge() {
-    const [mounted, setMounted] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -15,72 +13,115 @@ export default function AIBadge() {
     if (!mounted) return null;
 
     return (
-        <motion.a
+        <a
             href="https://derguggeis.de"
             target="_blank"
             rel="noopener noreferrer"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2, duration: 0.5 }}
+            aria-label="Erstellt von Guggeis.AI (öffnet in neuem Fenster)"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="fixed bottom-24 right-4 md:bottom-28 md:right-6 z-[60] group cursor-pointer"
+            className="beat-pulse"
+            style={{
+                position: "fixed",
+                bottom: "144px",
+                right: "16px",
+                zIndex: 60,
+                display: "block",
+            }}
         >
-            <motion.div
-                className="relative flex items-center gap-2 px-3 py-1.5 bg-void-deep/90 backdrop-blur-sm border border-signal/30 overflow-hidden"
-                animate={{
-                    borderColor: isHovered ? "rgba(255, 69, 0, 0.8)" : "rgba(255, 69, 0, 0.3)",
+            <div
+                style={{
+                    position: "relative",
+                    padding: "6px 12px",
+                    backgroundColor: "rgba(10, 10, 15, 0.95)",
+                    backdropFilter: "blur(4px)",
+                    border: `1px solid ${isHovered ? "rgba(255, 69, 0, 0.9)" : "rgba(255, 69, 0, 0.4)"}`,
+                    boxShadow: isHovered
+                        ? "0 0 20px rgba(255, 69, 0, 0.3), inset 0 0 20px rgba(255, 69, 0, 0.05)"
+                        : "none",
+                    transition: "all 0.3s ease",
+                    overflow: "hidden",
                 }}
-                transition={{ duration: 0.3 }}
             >
-                {/* Animated background glow on hover */}
-                <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-signal/0 via-signal/10 to-signal/0"
-                    animate={{
-                        x: isHovered ? ["-100%", "100%"] : "-100%",
-                    }}
-                    transition={{
-                        duration: 1,
-                        repeat: isHovered ? Infinity : 0,
-                        ease: "linear",
+                {/* Scan line effect */}
+                <div
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "linear-gradient(to bottom, transparent, rgba(255, 69, 0, 0.1), transparent)",
+                        transform: isHovered ? "translateY(100%)" : "translateY(-100%)",
+                        transition: "transform 0.8s linear",
+                        pointerEvents: "none",
                     }}
                 />
 
-                {/* Icon */}
-                <motion.div
-                    animate={{
-                        scale: isHovered ? [1, 1.2, 1] : 1,
-                    }}
-                    transition={{
-                        duration: 0.5,
-                        repeat: isHovered ? Infinity : 0,
-                    }}
-                >
-                    <Zap className="w-3 h-3 text-signal fill-signal" />
-                </motion.div>
+                {/* Content */}
+                <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "8px" }}>
+                    {/* Pulsing icon */}
+                    <span
+                        style={{
+                            fontSize: "12px",
+                            animation: "pulse 2s ease-in-out infinite",
+                        }}
+                    >
+                        ⚡
+                    </span>
 
-                {/* Text */}
-                <span className="font-mono text-[10px] tracking-wider text-stark/70 group-hover:text-stark transition-colors relative z-10">
-                    CRAFTED BY{" "}
-                    <span className="text-signal font-bold">GUGGEIS.AI</span>
-                </span>
+                    {/* Text */}
+                    <span
+                        style={{
+                            fontFamily: "monospace",
+                            fontSize: "10px",
+                            letterSpacing: "0.05em",
+                            color: isHovered ? "#e0e0e0" : "rgba(224, 224, 224, 0.7)",
+                            transition: "color 0.3s",
+                        }}
+                    >
+                        CRAFTED BY{" "}
+                        <span
+                            style={{
+                                color: "#FF4500",
+                                fontWeight: "bold",
+                                display: "inline-block",
+                                textShadow: isHovered
+                                    ? "2px 0 0 #00ffff, -2px 0 0 #ff00ff"
+                                    : "none",
+                                transition: "text-shadow 0.3s",
+                            }}
+                        >
+                            GUGGEIS.AI
+                        </span>
+                    </span>
+                </div>
 
-                {/* Corner accents */}
-                <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-signal/50" />
-                <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-signal/50" />
-                <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l border-signal/50" />
-                <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-signal/50" />
+                {/* Corner brackets */}
+                <div style={{ position: "absolute", top: 0, left: 0, width: "8px", height: "8px", borderTop: "1px solid rgba(255, 69, 0, 0.6)", borderLeft: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                <div style={{ position: "absolute", top: 0, right: 0, width: "8px", height: "8px", borderTop: "1px solid rgba(255, 69, 0, 0.6)", borderRight: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                <div style={{ position: "absolute", bottom: 0, left: 0, width: "8px", height: "8px", borderBottom: "1px solid rgba(255, 69, 0, 0.6)", borderLeft: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                <div style={{ position: "absolute", bottom: 0, right: 0, width: "8px", height: "8px", borderBottom: "1px solid rgba(255, 69, 0, 0.6)", borderRight: "1px solid rgba(255, 69, 0, 0.6)" }} />
+            </div>
 
-                {/* Pulse ring on hover */}
-                {isHovered && (
-                    <motion.div
-                        className="absolute inset-0 border border-signal/50"
-                        initial={{ opacity: 1, scale: 1 }}
-                        animate={{ opacity: 0, scale: 1.5 }}
-                        transition={{ duration: 0.8, repeat: Infinity }}
-                    />
-                )}
-            </motion.div>
-        </motion.a>
+            {/* Status indicator dot */}
+            <div
+                style={{
+                    position: "absolute",
+                    top: "-4px",
+                    right: "-4px",
+                    width: "8px",
+                    height: "8px",
+                    borderRadius: "50%",
+                    backgroundColor: "#FF4500",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                }}
+            />
+
+            {/* CSS Animation */}
+            <style jsx>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(1.2); }
+                }
+            `}</style>
+        </a>
     );
 }

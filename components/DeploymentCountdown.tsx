@@ -383,20 +383,21 @@ export default function DeploymentCountdown() {
         };
 
         const updateCountdown = () => {
-            setPrevTimeLeft(timeLeft);
-            const newTimeLeft = calculateTimeLeft();
-            setTimeLeft(newTimeLeft);
-
-            if (!newTimeLeft) {
-                setCountdownData(getCountdownTrack());
-            }
+            setTimeLeft(prev => {
+                setPrevTimeLeft(prev);
+                const newTimeLeft = calculateTimeLeft();
+                if (!newTimeLeft) {
+                    setCountdownData(getCountdownTrack());
+                }
+                return newTimeLeft;
+            });
         };
 
         updateCountdown();
         const interval = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(interval);
-    }, [countdownData, timeLeft]);
+    }, [countdownData]);
 
     // Notification request
     const handleNotifyClick = useCallback(async () => {
