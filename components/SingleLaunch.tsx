@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause } from "lucide-react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, assetPath } from "@/lib/utils";
 import { useAudio } from "@/contexts/AudioContext";
 import { getCountdownTrack } from "@/lib/tracks";
 
@@ -137,8 +137,8 @@ export default function SingleLaunch() {
         );
     }
 
-    // Get artwork path based on track title
-    const artworkPath = `/artwork/${featuredTrack.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/ /g, ' ')} Artwork.jpg`;
+    // Get artwork path based on track title (with basePath for production)
+    const artworkPath = assetPath(`/artwork/${featuredTrack.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/ /g, ' ')} Artwork.jpg`);
 
     return (
         <section className="w-full max-w-3xl mx-auto">

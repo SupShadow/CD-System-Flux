@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { TRACKS, Track, getReleasedTracks } from "@/lib/tracks";
+import { assetPath } from "@/lib/utils";
 
 interface StemGains {
     DRUMS: GainNode | null;
@@ -383,8 +384,8 @@ export function useAudioEngine(): AudioEngine {
                 playTrack(nextIndex);
             });
 
-            // Set source after adding event listeners
-            audio.src = track.src;
+            // Set source after adding event listeners (with basePath for production)
+            audio.src = assetPath(track.src);
             audioElementRef.current = audio;
 
             try {
