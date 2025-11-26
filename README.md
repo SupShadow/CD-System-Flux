@@ -99,6 +99,6 @@ checkout → install → build → upload → deploy
 
 **`[ SYSTEM FLUX // ACTIVATED ]`**
 
-*Built with 🤖 Agentic AI Assistance*
+*Built with 🤖 Guggeis AI*
 
 </div>
