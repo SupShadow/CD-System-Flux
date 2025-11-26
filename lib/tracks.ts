@@ -111,8 +111,6 @@ export function getNextUpcomingTrack(): Track | null {
  * Used for the countdown display
  */
 export function getCountdownTrack(): { track: Track; isReleased: boolean } | null {
-    const today = new Date().toISOString().split('T')[0];
-
     // First, check for an upcoming track
     const upcoming = getNextUpcomingTrack();
     if (upcoming) {

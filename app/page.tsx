@@ -85,7 +85,7 @@ export default function Home() {
             >
               IMPRESSUM
             </a>
-            <span className="text-stark/30">//</span>
+            <span className="text-stark/30">{"//"}</span>
             <a
               href="https://derguggeis.de/datenschutz"
               target="_blank"

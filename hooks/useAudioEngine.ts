@@ -232,10 +232,10 @@ export function useAudioEngine(): AudioEngine {
 
             setIsInitialized(true);
             clearError();
-        } catch (err) {
+        } catch (e) {
             handleError({
                 type: "init",
-                message: err instanceof Error ? err.message : "Failed to initialize audio system",
+                message: e instanceof Error ? e.message : "Failed to initialize audio system",
             });
         }
     }, [handleError, clearError]);
@@ -275,7 +275,7 @@ export function useAudioEngine(): AudioEngine {
                     source.connect(filters.FX);
                     filters.FX.connect(gains.FX);
                 }
-            } catch (err) {
+            } catch {
                 handleError({
                     type: "init",
                     message: "Failed to connect audio filters",
@@ -427,10 +427,10 @@ export function useAudioEngine(): AudioEngine {
                         });
                     });
                 }
-            } catch (err) {
+            } catch (e) {
                 handleError({
                     type: "playback",
-                    message: err instanceof Error ? err.message : "Playback initialization failed",
+                    message: e instanceof Error ? e.message : "Playback initialization failed",
                     trackIndex: index,
                 });
                 setIsPlaying(false);
@@ -498,7 +498,7 @@ export function useAudioEngine(): AudioEngine {
                             audioContextRef.current?.currentTime || 0,
                             0.05 // Smooth transition
                         );
-                    } catch (err) {
+                    } catch {
                         handleError({
                             type: "playback",
                             message: `Failed to toggle ${stem} stem`,
@@ -523,7 +523,7 @@ export function useAudioEngine(): AudioEngine {
                         audioContextRef.current?.currentTime || 0,
                         0.05
                     );
-                } catch (err) {
+                } catch {
                     handleError({
                         type: "playback",
                         message: "Failed to change volume",
@@ -552,7 +552,7 @@ export function useAudioEngine(): AudioEngine {
                         audioContextRef.current?.currentTime || 0,
                         0.05
                     );
-                } catch (err) {
+                } catch {
                     handleError({
                         type: "playback",
                         message: "Failed to change volume",

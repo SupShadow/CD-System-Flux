@@ -46,10 +46,12 @@ export function useBeatDetection(
     const frameIdRef = useRef<number | null>(null);
     const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
+    const analyzeRef = useRef<(() => void) | null>(null);
+
     const analyze = useCallback(() => {
         const analyser = analyserRef.current;
         if (!analyser) {
-            frameIdRef.current = requestAnimationFrame(analyze);
+            frameIdRef.current = requestAnimationFrame(() => analyzeRef.current?.());
             return;
         }
 
@@ -122,8 +124,11 @@ export function useBeatDetection(
             energy,
         });
 
-        frameIdRef.current = requestAnimationFrame(analyze);
+        frameIdRef.current = requestAnimationFrame(() => analyzeRef.current?.());
     }, [analyserRef, opts.sensitivity, opts.smoothing, opts.minBeatInterval]);
+
+    // Keep analyzeRef in sync with analyze
+    analyzeRef.current = analyze;
 
     useEffect(() => {
         if (isPlaying) {

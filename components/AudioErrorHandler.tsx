@@ -5,7 +5,7 @@ import { useAudio } from "@/contexts/AudioContext";
 import { useToast } from "@/contexts/ToastContext";
 
 export function AudioErrorHandler() {
-    const { setOnError, error } = useAudio();
+    const { setOnError } = useAudio();
     const { showError, showWarning } = useToast();
 
     useEffect(() => {

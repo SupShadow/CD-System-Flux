@@ -55,7 +55,8 @@ export default function NotFound() {
                             ERROR: Route not found in FLUX_DATABASE
                         </p>
                         <p className="text-stark/40 text-xs mt-4">
-                            // Die angeforderte Seite existiert nicht
+                            {/* German comment for terminal style */}
+                            {"//"} Die angeforderte Seite existiert nicht
                         </p>
                     </div>
                 </div>
