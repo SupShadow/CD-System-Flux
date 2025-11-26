@@ -31,7 +31,19 @@
       "Bash(npx eslint:*)",
       "Bash(npx next lint)",
       "Bash(cmd /c \"rmdir /s /q .next 2>nul\")",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(cmd /c \"rename \"\"c:\\Users\\Julian\\CD-System-Flux\\public\\music\\ZERO CREDIT.wav\"\" zero_credit.wav\")",
+      "Bash(ffmpeg:*)",
+      "Bash(cmd /c \"where ffmpeg 2>nul || echo not found\")",
+      "Bash(node:*)",
+      "Bash(cmd /c \"dir \"\"c:\\Users\\Julian\\CD-System-Flux\\public\\music\"\" /b | findstr -i zero\")",
+      "Bash(cmd /c \"dir \"\"c:\\Users\\Julian\\CD-System-Flux\\public\\music\"\" /b\")",
+      "Bash(cmd /c \"del \"\"c:\\Users\\Julian\\CD-System-Flux\\public\\music\\ZERO CREDIT.wav\"\"\")",
+      "Bash(cmd /c \"cd c:\\Users\\Julian\\CD-System-Flux\\public\\music && rename \"\"ZERO CREDIT_01.mp3\"\" zero_credit.mp3 && del \"\"ZERO CREDIT.wav\"\" 2>nul\")",
+      "Bash(cmd /c \"del c:\\Users\\Julian\\CD-System-Flux\\components\\MerchTeaser.tsx\")",
+      "Bash(cmd /c \"del c:\\Users\\Julian\\CD-System-Flux\\components\\SystemStatus.tsx\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
