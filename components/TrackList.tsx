@@ -27,7 +27,7 @@ export default function TrackList({ isOpen, onClose, currentTrack, onSelect, isP
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="fixed bottom-16 left-0 right-0 bg-void-deep/95 border-t-2 border-signal z-[45] shadow-[0_-10px_40px_rgba(255,69,0,0.2)] backdrop-blur-xl max-h-[60vh] overflow-hidden flex flex-col"
+                    className="fixed bottom-16 left-0 right-0 bg-void-deep/95 border-t-2 border-signal z-[55] shadow-[0_-10px_40px_rgba(255,69,0,0.2)] backdrop-blur-xl max-h-[60vh] overflow-hidden flex flex-col"
                     id="track-list-panel"
                     role="dialog"
                     aria-label="Track list"
