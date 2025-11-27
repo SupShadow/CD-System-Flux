@@ -104,6 +104,8 @@ export function useAudioEngine(): AudioEngine {
     const trackGainRef = useRef<GainNode | null>(null); // Per-track volume normalization
     const analyserRef = useRef<AnalyserNode | null>(null);
     const onErrorRef = useRef<((error: AudioError) => void) | null>(null);
+    const silentAudioRef = useRef<HTMLAudioElement | null>(null); // Silent audio for iOS keepalive
+    const wasPlayingBeforeHiddenRef = useRef<boolean>(false); // Track if we were playing before page hide
     const stemGainsRef = useRef<StemGains>({
         DRUMS: null,
         BASS: null,
@@ -233,6 +235,19 @@ export function useAudioEngine(): AudioEngine {
 
             setIsInitialized(true);
             clearError();
+
+            // iOS/Safari: Handle AudioContext state changes (interrupted/suspended)
+            ctx.addEventListener("statechange", () => {
+                console.log("[AudioEngine] AudioContext state changed to:", ctx.state);
+                if (ctx.state === "suspended" || (ctx.state as string) === "interrupted") {
+                    // Try to resume if we were playing
+                    if (audioElementRef.current && !audioElementRef.current.paused) {
+                        ctx.resume().catch((e) => {
+                            console.warn("[AudioEngine] Failed to resume AudioContext:", e);
+                        });
+                    }
+                }
+            });
         } catch (e) {
             handleError({
                 type: "init",
@@ -240,6 +255,48 @@ export function useAudioEngine(): AudioEngine {
             });
         }
     }, [handleError, clearError]);
+
+    // iOS Safari Keepalive: Create silent audio to maintain audio session
+    const initSilentAudio = useCallback(() => {
+        if (silentAudioRef.current) return;
+
+        // Create a very short silent audio using a data URI (minimal 1-sample WAV)
+        // This keeps the iOS audio session alive when the screen is locked
+        const silentDataUri =
+            "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+
+        const silentAudio = new Audio();
+        silentAudio.src = silentDataUri;
+        silentAudio.loop = true;
+        silentAudio.volume = 0.001; // Nearly silent but not zero (iOS might optimize away zero volume)
+        silentAudio.setAttribute("playsinline", "true");
+        silentAudio.setAttribute("webkit-playsinline", "true");
+        silentAudioRef.current = silentAudio;
+
+        console.log("[AudioEngine] Silent audio keepalive initialized");
+    }, []);
+
+    // Start silent audio keepalive (call when main audio starts playing)
+    const startSilentKeepalive = useCallback(() => {
+        if (!silentAudioRef.current) {
+            initSilentAudio();
+        }
+
+        const silentAudio = silentAudioRef.current;
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch((e) => {
+                console.warn("[AudioEngine] Silent keepalive play failed:", e);
+            });
+        }
+    }, [initSilentAudio]);
+
+    // Stop silent audio keepalive (call when main audio pauses)
+    const stopSilentKeepalive = useCallback(() => {
+        const silentAudio = silentAudioRef.current;
+        if (silentAudio && !silentAudio.paused) {
+            silentAudio.pause();
+        }
+    }, []);
 
     // Connect audio source to stem filters
     const connectSourceToStems = useCallback(
@@ -326,6 +383,9 @@ export function useAudioEngine(): AudioEngine {
             const audio = new Audio();
             audio.crossOrigin = "anonymous";
             audio.preload = "auto";
+            // iOS Safari: Required for background playback
+            audio.setAttribute("playsinline", "true");
+            audio.setAttribute("webkit-playsinline", "true");
 
             // Error handlers for audio element
             audio.addEventListener("error", () => {
@@ -398,6 +458,8 @@ export function useAudioEngine(): AudioEngine {
                     .play()
                     .then(() => {
                         clearError();
+                        // Start silent keepalive for iOS background playback
+                        startSilentKeepalive();
                     })
                     .catch((e) => {
                         // Handle autoplay restrictions
@@ -415,6 +477,7 @@ export function useAudioEngine(): AudioEngine {
                             });
                         }
                         setIsPlaying(false);
+                        stopSilentKeepalive();
                     });
 
                 setCurrentTrackIndex(index);
@@ -437,7 +500,7 @@ export function useAudioEngine(): AudioEngine {
                 setIsPlaying(false);
             }
         },
-        [initAudio, connectSourceToStems, handleError, clearError]
+        [initAudio, connectSourceToStems, handleError, clearError, startSilentKeepalive, stopSilentKeepalive]
     );
 
     // Toggle play/pause
@@ -451,6 +514,7 @@ export function useAudioEngine(): AudioEngine {
             audio?.pause();
             ctx?.suspend();
             setIsPlaying(false);
+            stopSilentKeepalive();
         } else {
             if (!audio || !audio.src || audio.src === window.location.href) {
                 playTrack(currentTrackIndex);
@@ -461,6 +525,7 @@ export function useAudioEngine(): AudioEngine {
                         ctx?.resume();
                         setIsPlaying(true);
                         clearError();
+                        startSilentKeepalive();
                     })
                     .catch((e) => {
                         handleError({
@@ -470,7 +535,7 @@ export function useAudioEngine(): AudioEngine {
                     });
             }
         }
-    }, [isPlaying, currentTrackIndex, initAudio, playTrack, handleError, clearError]);
+    }, [isPlaying, currentTrackIndex, initAudio, playTrack, handleError, clearError, startSilentKeepalive, stopSilentKeepalive]);
 
     // Play next track
     const playNext = useCallback(() => {
@@ -736,6 +801,97 @@ export function useAudioEngine(): AudioEngine {
 
         return () => clearInterval(interval);
     }, [isPlaying, duration, currentTime]);
+
+    // iOS/Safari: Handle page visibility changes to resume audio after screen unlock
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            const ctx = audioContextRef.current;
+            const audio = audioElementRef.current;
+
+            if (document.hidden) {
+                // Page is being hidden (screen locked, tab switched, etc.)
+                // Remember if we were playing
+                wasPlayingBeforeHiddenRef.current = isPlaying;
+                console.log("[AudioEngine] Page hidden, was playing:", isPlaying);
+            } else {
+                // Page is visible again (screen unlocked, tab focused)
+                console.log("[AudioEngine] Page visible, was playing:", wasPlayingBeforeHiddenRef.current);
+
+                if (wasPlayingBeforeHiddenRef.current && audio && ctx) {
+                    // Resume AudioContext if suspended
+                    if (ctx.state === "suspended" || (ctx.state as string) === "interrupted") {
+                        ctx.resume().then(() => {
+                            console.log("[AudioEngine] AudioContext resumed after visibility change");
+                        }).catch((e) => {
+                            console.warn("[AudioEngine] Failed to resume AudioContext:", e);
+                        });
+                    }
+
+                    // Resume audio playback if it was paused by iOS
+                    if (audio.paused) {
+                        audio.play().then(() => {
+                            console.log("[AudioEngine] Audio playback resumed after visibility change");
+                            setIsPlaying(true);
+                            startSilentKeepalive();
+                        }).catch((e) => {
+                            console.warn("[AudioEngine] Failed to resume audio playback:", e);
+                        });
+                    }
+                }
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [isPlaying, startSilentKeepalive]);
+
+    // iOS/Safari: Handle audio element pause events that might be triggered by iOS
+    useEffect(() => {
+        const audio = audioElementRef.current;
+        if (!audio) return;
+
+        const handlePause = () => {
+            // Only update state if this wasn't a user-initiated pause
+            // iOS might pause audio when screen locks
+            if (!document.hidden && isPlaying) {
+                console.log("[AudioEngine] Unexpected pause detected, attempting to resume...");
+                const ctx = audioContextRef.current;
+
+                // Try to resume after a brief delay (iOS needs this)
+                setTimeout(() => {
+                    if (ctx && (ctx.state === "suspended" || (ctx.state as string) === "interrupted")) {
+                        ctx.resume().catch(console.warn);
+                    }
+                    audio.play().then(() => {
+                        console.log("[AudioEngine] Audio resumed after unexpected pause");
+                    }).catch((e) => {
+                        console.warn("[AudioEngine] Could not resume after pause:", e);
+                        setIsPlaying(false);
+                    });
+                }, 100);
+            }
+        };
+
+        audio.addEventListener("pause", handlePause);
+
+        return () => {
+            audio.removeEventListener("pause", handlePause);
+        };
+    }, [isPlaying]);
+
+    // Cleanup silent audio on unmount
+    useEffect(() => {
+        return () => {
+            if (silentAudioRef.current) {
+                silentAudioRef.current.pause();
+                silentAudioRef.current.src = "";
+                silentAudioRef.current = null;
+            }
+        };
+    }, []);
 
     return {
         // State
