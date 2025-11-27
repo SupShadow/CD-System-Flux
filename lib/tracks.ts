@@ -78,7 +78,7 @@ export const TRACKS: Track[] = [
     { title: "ION CORE", src: "/music/ion_core.mp3", color: COLORS.blue, visualizer: "atomic" },
     { title: "KILLSWITCH PRESS CONFERENCE", src: "/music/killswitch_press_conference.mp3", color: COLORS.red, visualizer: "flash" },
     { title: "Likes and Lies", src: "/music/likes_and_lies.mp3", color: COLORS.pink, visualizer: "hearts" },
-    { title: "Make Me the Villain", src: "/music/make_me_the_villain.mp3", color: COLORS.orange, visualizer: "villain", releaseDate: "2025-11-28" },
+    { title: "Make Me the Villain", src: "/music/make_me_the_villain.mp3", color: COLORS.orange, visualizer: "villain", releaseDate: "2025-11-27" },
     { title: "Zero Credit", src: "/music/zero_credit.mp3", color: COLORS.lime, visualizer: "digital", releaseDate: "2025-11-26", gain: 0.5 },
     { title: "Mirror Match IQ", src: "/music/mirror_match_iq.mp3", color: COLORS.teal, visualizer: "chess" },
     { title: "Neon Enigma", src: "/music/neon_enigma.mp3", color: COLORS.magenta, visualizer: "enigma" },
