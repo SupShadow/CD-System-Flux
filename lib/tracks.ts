@@ -127,3 +127,13 @@ export function getCountdownTrack(): { track: Track; isReleased: boolean } | nul
 
     return null;
 }
+
+/**
+ * Get artwork path for a track
+ * Handles the naming convention: `/artwork/{Title} Artwork.jpg`
+ */
+export function getArtworkPath(track: Track): string {
+    // Remove special characters and format title for artwork filename
+    const cleanTitle = track.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/ /g, ' ');
+    return `/artwork/${cleanTitle} Artwork.jpg`;
+}

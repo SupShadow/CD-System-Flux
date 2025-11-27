@@ -64,9 +64,9 @@ export default function Home() {
         <Connect />
       </ScrollReveal>
 
-      <ScrollReveal animation="fade" delay={0.3} className="w-full max-w-5xl">
+      <ScrollReveal animation="fade" delay={0.3} className="w-full max-w-5xl mb-24 md:mb-0">
         <footer className="border-t border-stark/10 pt-8 font-mono text-xs text-stark/60">
-          <div className="flex justify-between items-end">
+          <div className="hidden md:flex justify-between items-end">
             <div>
               <p>FLUX_OS v1.0.0</p>
               <p>ALL RIGHTS RESERVED</p>
@@ -76,21 +76,21 @@ export default function Home() {
               <p>SYSTEM STATUS: ONLINE</p>
             </div>
           </div>
-          <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-stark/5">
+          <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-4 md:mt-6 md:pt-4 md:border-t md:border-stark/5">
             <a
               href="https://derguggeis.de/impressum"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-signal transition-colors"
+              className="hover:text-signal transition-colors text-[10px] md:text-xs"
             >
               IMPRESSUM
             </a>
-            <span className="text-stark/30">{"//"}</span>
+            <span className="text-stark/30 hidden md:inline">{"//"}</span>
             <a
               href="https://derguggeis.de/datenschutz"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-signal transition-colors"
+              className="hover:text-signal transition-colors text-[10px] md:text-xs"
             >
               DATENSCHUTZ
             </a>

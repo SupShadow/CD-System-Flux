@@ -5,12 +5,14 @@ import { Play, Pause, SkipBack, SkipForward, List, Volume2, Volume1, VolumeX, Ma
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useAudio } from "@/contexts/AudioContext";
 import { useKeyboardShortcuts } from "@/hooks";
+import { getArtworkPath } from "@/lib/tracks";
 import TrackList from "./TrackList";
 import FullscreenVisualizer from "./FullscreenVisualizer";
 import KeyboardHints from "./KeyboardHints";
 import TypewriterText from "./TypewriterText";
 import TransmitButton from "./TransmitButton";
-import { cn } from "@/lib/utils";
+import { cn, assetPath } from "@/lib/utils";
+import Image from "next/image";
 
 function formatTime(seconds: number): string {
     if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -282,10 +284,22 @@ export default function FluxPlayer() {
                         <div className="flex items-center justify-between gap-4">
                             {/* Left: Agent Info */}
                             <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-                                {/* Agent badge - beat reactive - hidden on mobile */}
-                                <div className="hidden md:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5 beat-border">
-                                    <span className="font-mono text-[10px] text-stark/50">AGENT</span>
-                                    <span className="font-mono text-xl text-signal font-bold">{agentNumber}</span>
+                                {/* Artwork on mobile, Agent badge on desktop */}
+                                <div className="relative w-12 h-12 md:w-14 md:h-14 shrink-0 border border-signal/30 bg-signal/5 beat-border overflow-hidden">
+                                    {/* Mobile: Artwork */}
+                                    <Image
+                                        src={assetPath(getArtworkPath(currentTrack))}
+                                        alt={currentTrack.title}
+                                        fill
+                                        className="object-cover md:hidden"
+                                        sizes="48px"
+                                        unoptimized
+                                    />
+                                    {/* Desktop: Agent number badge */}
+                                    <div className="hidden md:flex flex-col items-center justify-center w-full h-full">
+                                        <span className="font-mono text-[10px] text-stark/50">AGENT</span>
+                                        <span className="font-mono text-xl text-signal font-bold">{agentNumber}</span>
+                                    </div>
                                 </div>
 
                                 {/* Track info */}
