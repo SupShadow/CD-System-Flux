@@ -280,7 +280,7 @@ export default function FluxPlayer() {
                     </div>
 
                     {/* Main player content */}
-                    <div className="px-4 md:px-6 py-3">
+                    <div className="px-3 md:px-6 py-2 md:py-3">
                         <div className="flex items-center justify-between gap-4">
                             {/* Left: Agent Info */}
                             <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
@@ -304,7 +304,7 @@ export default function FluxPlayer() {
 
                                 {/* Track info */}
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 md:gap-3 mb-1">
+                                    <div className="hidden md:flex items-center gap-3 mb-1">
                                         <AgentStatus isActive={isPlaying} />
                                         <span className="font-mono text-[10px] text-stark/60 hidden lg:inline">
                                             {formatTime(mounted ? currentTime : 0)} / {formatTime(duration)}
@@ -319,7 +319,7 @@ export default function FluxPlayer() {
                                             className={cn(isPlaying && "text-signal")}
                                         />
                                     </div>
-                                    <div className="font-mono text-[10px] text-stark/60 mt-0.5">
+                                    <div className="hidden md:block font-mono text-[10px] text-stark/60 mt-0.5">
                                         {isPlaying ? (
                                             <span>executing audio_stream<ThinkingDots /></span>
                                         ) : (

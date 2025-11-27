@@ -20,13 +20,12 @@ export default function AIBadge() {
             aria-label="Erstellt von Guggeis.AI (öffnet in neuem Fenster)"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="beat-pulse"
+            className="beat-pulse hidden md:block"
             style={{
                 position: "fixed",
                 bottom: "144px",
                 right: "16px",
                 zIndex: 60,
-                display: "block",
             }}
         >
             <div
