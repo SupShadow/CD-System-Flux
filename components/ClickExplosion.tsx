@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useIsMobile } from "@/hooks";
+import { usePerformanceOptimizations, useHapticFeedback } from "@/hooks";
 
 interface Particle {
     id: number;
@@ -40,9 +40,13 @@ export default function ClickExplosion() {
     const [explosions, setExplosions] = useState<Explosion[]>([]);
     const [mounted, setMounted] = useState(false);
     const [isWarmedUp, setIsWarmedUp] = useState(false);
-    const isMobile = useIsMobile();
+    const perf = usePerformanceOptimizations();
+    const haptic = useHapticFeedback();
     // Track if we've done the initial "warm-up" animation
     const warmupDoneRef = useRef(false);
+
+    // Determine if we're in a low-performance mode
+    const isLowPerformance = perf.level === "low" || perf.level === "ultra-low" || perf.level === "medium";
 
     useEffect(() => {
         setMounted(true);
@@ -60,13 +64,19 @@ export default function ClickExplosion() {
     }, []);
 
     const createExplosion = useCallback((x: number, y: number) => {
-        // Significantly fewer particles on mobile (6-8 vs 12-20)
-        const particleCount = isMobile
-            ? 6 + Math.floor(Math.random() * 3)  // 6-8 particles on mobile
-            : 12 + Math.floor(Math.random() * 8); // 12-20 particles on desktop
+        // Skip explosions entirely on ultra-low performance
+        if (perf.level === "ultra-low") return;
+
+        // Trigger haptic feedback on click
+        haptic.tap();
+
+        // Adjust particle count based on performance level
+        const particleCount = isLowPerformance
+            ? 6 + Math.floor(Math.random() * 3)  // 6-8 particles on low performance
+            : 12 + Math.floor(Math.random() * 8); // 12-20 particles on high performance
 
         const particles: Particle[] = [];
-        const colors = isMobile ? PARTICLE_COLORS_MOBILE : PARTICLE_COLORS;
+        const colors = isLowPerformance ? PARTICLE_COLORS_MOBILE : PARTICLE_COLORS;
 
         for (let i = 0; i < particleCount; i++) {
             particles.push({
@@ -74,14 +84,14 @@ export default function ClickExplosion() {
                 x: 0,
                 y: 0,
                 angle: (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5,
-                // Shorter distance on mobile for snappier feel
-                velocity: isMobile
-                    ? 50 + Math.random() * 60   // 50-110px on mobile
-                    : 80 + Math.random() * 120, // 80-200px on desktop
-                // Slightly smaller particles on mobile
-                size: isMobile
-                    ? 2 + Math.random() * 2     // 2-4px on mobile
-                    : 2 + Math.random() * 4,    // 2-6px on desktop
+                // Shorter distance on low performance for snappier feel
+                velocity: isLowPerformance
+                    ? 50 + Math.random() * 60   // 50-110px on low performance
+                    : 80 + Math.random() * 120, // 80-200px on high performance
+                // Slightly smaller particles on low performance
+                size: isLowPerformance
+                    ? 2 + Math.random() * 2     // 2-4px on low performance
+                    : 2 + Math.random() * 4,    // 2-6px on high performance
                 color: colors[Math.floor(Math.random() * colors.length)],
             });
         }
@@ -95,11 +105,11 @@ export default function ClickExplosion() {
 
         setExplosions(prev => [...prev, explosion]);
 
-        // Remove explosion after animation (shorter on mobile)
+        // Remove explosion after animation (shorter on low performance)
         setTimeout(() => {
             setExplosions(prev => prev.filter(e => e.id !== explosion.id));
-        }, isMobile ? 400 : 600);
-    }, [isMobile]);
+        }, isLowPerformance ? 400 : 600);
+    }, [perf.level, isLowPerformance, haptic]);
 
     useEffect(() => {
         if (!mounted) return;
@@ -141,7 +151,7 @@ export default function ClickExplosion() {
                             willChange: "transform",
                         }}
                     >
-                        {/* Central flash - smaller on mobile */}
+                        {/* Central flash - smaller on low performance */}
                         <motion.div
                             className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
                             style={{
@@ -149,21 +159,21 @@ export default function ClickExplosion() {
                                 transform: "translateZ(0)",
                             }}
                             initial={{
-                                width: isMobile ? 8 : 10,
-                                height: isMobile ? 8 : 10,
+                                width: isLowPerformance ? 8 : 10,
+                                height: isLowPerformance ? 8 : 10,
                                 opacity: 1,
                                 background: "radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,69,0,0.8) 50%, transparent 100%)"
                             }}
                             animate={{
-                                width: isMobile ? 25 : 40,
-                                height: isMobile ? 25 : 40,
+                                width: isLowPerformance ? 25 : 40,
+                                height: isLowPerformance ? 25 : 40,
                                 opacity: 0
                             }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: isMobile ? 0.2 : 0.3, ease: "easeOut" }}
+                            transition={{ duration: isLowPerformance ? 0.2 : 0.3, ease: "easeOut" }}
                         />
 
-                        {/* Particles - no boxShadow on mobile for better performance */}
+                        {/* Particles - no boxShadow on low performance for better performance */}
                         {explosion.particles.map(particle => (
                             <motion.div
                                 key={particle.id}
@@ -172,8 +182,8 @@ export default function ClickExplosion() {
                                     width: particle.size,
                                     height: particle.size,
                                     backgroundColor: particle.color,
-                                    // Skip expensive boxShadow on mobile
-                                    boxShadow: isMobile ? undefined : `0 0 ${particle.size * 2}px ${particle.color}`,
+                                    // Skip expensive boxShadow on low performance
+                                    boxShadow: perf.enableBoxShadow ? `0 0 ${particle.size * 2}px ${particle.color}` : undefined,
                                     left: -particle.size / 2,
                                     top: -particle.size / 2,
                                     willChange: "transform, opacity",
@@ -194,28 +204,28 @@ export default function ClickExplosion() {
                                 }}
                                 exit={{ opacity: 0 }}
                                 transition={{
-                                    // Shorter, more consistent duration on mobile
-                                    duration: isMobile ? 0.25 : 0.4 + Math.random() * 0.2,
+                                    // Shorter, more consistent duration on low performance
+                                    duration: isLowPerformance ? 0.25 : 0.4 + Math.random() * 0.2,
                                     ease: [0.25, 0.46, 0.45, 0.94], // easeOutQuad
                                 }}
                             />
                         ))}
 
-                        {/* Ring expand effect - smaller on mobile */}
+                        {/* Ring expand effect - smaller on low performance */}
                         <motion.div
                             className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-signal/50"
                             style={{
                                 willChange: "width, height, opacity",
                                 transform: "translateZ(0)",
                             }}
-                            initial={{ width: 0, height: 0, opacity: isMobile ? 0.6 : 0.8 }}
-                            animate={{ width: isMobile ? 40 : 60, height: isMobile ? 40 : 60, opacity: 0 }}
+                            initial={{ width: 0, height: 0, opacity: isLowPerformance ? 0.6 : 0.8 }}
+                            animate={{ width: isLowPerformance ? 40 : 60, height: isLowPerformance ? 40 : 60, opacity: 0 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: isMobile ? 0.25 : 0.4, ease: "easeOut" }}
+                            transition={{ duration: isLowPerformance ? 0.25 : 0.4, ease: "easeOut" }}
                         />
 
-                        {/* Spark lines - skip on mobile for better performance */}
-                        {!isMobile && [0, 1, 2, 3].map(i => (
+                        {/* Spark lines - skip on low performance for better performance */}
+                        {perf.enableComplexAnimations && [0, 1, 2, 3].map(i => (
                             <motion.div
                                 key={`spark-${i}`}
                                 className="absolute bg-signal/80"

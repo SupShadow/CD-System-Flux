@@ -4,6 +4,27 @@ import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { TRACKS, Track, getReleasedTracks, getArtworkPath } from "@/lib/tracks";
 import { assetPath } from "@/lib/utils";
 
+// Platform detection utilities
+const getPlatformInfo = () => {
+    if (typeof window === "undefined") {
+        return { isAndroid: false, isIOS: false, androidVersion: null };
+    }
+
+    const ua = navigator.userAgent.toLowerCase();
+    const isAndroid = /android/i.test(ua);
+    const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    let androidVersion: number | null = null;
+    if (isAndroid) {
+        const match = ua.match(/android\s*(\d+\.?\d*)/i);
+        if (match) {
+            androidVersion = parseFloat(match[1]);
+        }
+    }
+
+    return { isAndroid, isIOS, androidVersion };
+};
+
 interface StemGains {
     DRUMS: GainNode | null;
     BASS: GainNode | null;
@@ -106,6 +127,8 @@ export function useAudioEngine(): AudioEngine {
     const onErrorRef = useRef<((error: AudioError) => void) | null>(null);
     const silentAudioRef = useRef<HTMLAudioElement | null>(null); // Silent audio for iOS keepalive
     const wasPlayingBeforeHiddenRef = useRef<boolean>(false); // Track if we were playing before page hide
+    const wasPlayingBeforeInterruptionRef = useRef<boolean>(false); // Track if we were playing before audio interruption (Android)
+    const platformInfoRef = useRef(getPlatformInfo()); // Cache platform info
     const stemGainsRef = useRef<StemGains>({
         DRUMS: null,
         BASS: null,
@@ -236,15 +259,27 @@ export function useAudioEngine(): AudioEngine {
             setIsInitialized(true);
             clearError();
 
-            // iOS/Safari: Handle AudioContext state changes (interrupted/suspended)
+            // iOS/Safari & Android: Handle AudioContext state changes (interrupted/suspended)
             ctx.addEventListener("statechange", () => {
-                console.log("[AudioEngine] AudioContext state changed to:", ctx.state);
+                const { isAndroid, isIOS } = platformInfoRef.current;
+                console.log("[AudioEngine] AudioContext state changed to:", ctx.state, "Platform:", isAndroid ? "Android" : isIOS ? "iOS" : "Other");
+
                 if (ctx.state === "suspended" || (ctx.state as string) === "interrupted") {
                     // Try to resume if we were playing
                     if (audioElementRef.current && !audioElementRef.current.paused) {
                         ctx.resume().catch((e) => {
                             console.warn("[AudioEngine] Failed to resume AudioContext:", e);
                         });
+                    }
+                } else if (ctx.state === "running" && isAndroid) {
+                    // Android: AudioContext resumed, try to resume playback if we were interrupted
+                    const audio = audioElementRef.current;
+                    if (audio && audio.paused && wasPlayingBeforeInterruptionRef.current) {
+                        console.log("[AudioEngine] Android: AudioContext running, resuming playback");
+                        audio.play().catch((e) => {
+                            console.warn("[AudioEngine] Android: Failed to resume after interruption:", e);
+                        });
+                        wasPlayingBeforeInterruptionRef.current = false;
                     }
                 }
             });
@@ -892,6 +927,149 @@ export function useAudioEngine(): AudioEngine {
             }
         };
     }, []);
+
+    // Android: Handle audio focus changes (phone calls, notifications, other apps)
+    // This uses multiple event listeners to detect when audio focus is lost/gained
+    useEffect(() => {
+        const { isAndroid } = platformInfoRef.current;
+        if (!isAndroid) return;
+
+        const audio = audioElementRef.current;
+
+        // Handle audio focus loss through blur event (when another app takes focus)
+        const handleWindowBlur = () => {
+            if (isPlaying && audio && !audio.paused) {
+                console.log("[AudioEngine] Android: Window blur detected, saving playback state");
+                wasPlayingBeforeInterruptionRef.current = true;
+            }
+        };
+
+        // Handle audio focus gain through focus event
+        const handleWindowFocus = () => {
+            const ctx = audioContextRef.current;
+            if (wasPlayingBeforeInterruptionRef.current && audio && ctx) {
+                console.log("[AudioEngine] Android: Window focus gained, attempting to resume");
+
+                // Small delay to let Android settle
+                setTimeout(() => {
+                    if (ctx.state === "suspended") {
+                        ctx.resume().then(() => {
+                            if (audio.paused) {
+                                audio.play().catch(console.warn);
+                            }
+                        }).catch(console.warn);
+                    } else if (audio.paused) {
+                        audio.play().catch(console.warn);
+                    }
+                    wasPlayingBeforeInterruptionRef.current = false;
+                }, 300);
+            }
+        };
+
+        // Handle audio interruptions through the audio element's events
+        const handleAudioWaiting = () => {
+            console.log("[AudioEngine] Android: Audio waiting (buffering or interrupted)");
+        };
+
+        const handleAudioStalled = () => {
+            console.log("[AudioEngine] Android: Audio stalled");
+        };
+
+        // Handle Bluetooth audio device changes
+        const handleDeviceChange = () => {
+            const ctx = audioContextRef.current;
+            console.log("[AudioEngine] Android: Audio device changed (Bluetooth connect/disconnect)");
+
+            // When Bluetooth disconnects, audio often pauses - try to resume
+            if (ctx && ctx.state === "suspended") {
+                ctx.resume().catch(console.warn);
+            }
+
+            // Reconnect audio if it was playing
+            if (audio && audio.paused && wasPlayingBeforeInterruptionRef.current) {
+                setTimeout(() => {
+                    audio.play().catch(console.warn);
+                }, 500);
+            }
+        };
+
+        window.addEventListener("blur", handleWindowBlur);
+        window.addEventListener("focus", handleWindowFocus);
+
+        if (audio) {
+            audio.addEventListener("waiting", handleAudioWaiting);
+            audio.addEventListener("stalled", handleAudioStalled);
+        }
+
+        // Listen for audio output device changes (Bluetooth, etc.)
+        if (navigator.mediaDevices?.addEventListener) {
+            navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+        }
+
+        return () => {
+            window.removeEventListener("blur", handleWindowBlur);
+            window.removeEventListener("focus", handleWindowFocus);
+
+            if (audio) {
+                audio.removeEventListener("waiting", handleAudioWaiting);
+                audio.removeEventListener("stalled", handleAudioStalled);
+            }
+
+            if (navigator.mediaDevices?.removeEventListener) {
+                navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
+            }
+        };
+    }, [isPlaying]);
+
+    // Android: Handle phone calls and other system audio interruptions
+    // Uses the beforeunload event as a proxy for detecting system interruptions
+    useEffect(() => {
+        const { isAndroid } = platformInfoRef.current;
+        if (!isAndroid) return;
+
+        // Android Chrome fires 'pagehide' when receiving calls or switching apps
+        const handlePageHide = (event: PageTransitionEvent) => {
+            if (isPlaying) {
+                console.log("[AudioEngine] Android: Page hide detected (possible phone call)");
+                wasPlayingBeforeInterruptionRef.current = true;
+            }
+        };
+
+        const handlePageShow = (event: PageTransitionEvent) => {
+            const audio = audioElementRef.current;
+            const ctx = audioContextRef.current;
+
+            if (event.persisted && wasPlayingBeforeInterruptionRef.current && audio && ctx) {
+                console.log("[AudioEngine] Android: Page show detected, resuming playback");
+
+                // Resume AudioContext first
+                if (ctx.state === "suspended") {
+                    ctx.resume().catch(console.warn);
+                }
+
+                // Then resume audio with a delay
+                setTimeout(() => {
+                    if (audio.paused) {
+                        audio.play().then(() => {
+                            setIsPlaying(true);
+                            startSilentKeepalive();
+                        }).catch((e) => {
+                            console.warn("[AudioEngine] Android: Could not resume after page show:", e);
+                        });
+                    }
+                    wasPlayingBeforeInterruptionRef.current = false;
+                }, 300);
+            }
+        };
+
+        window.addEventListener("pagehide", handlePageHide);
+        window.addEventListener("pageshow", handlePageShow);
+
+        return () => {
+            window.removeEventListener("pagehide", handlePageHide);
+            window.removeEventListener("pageshow", handlePageShow);
+        };
+    }, [isPlaying, startSilentKeepalive]);
 
     return {
         // State
