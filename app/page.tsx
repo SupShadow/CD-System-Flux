@@ -8,6 +8,7 @@ import Connect from "@/components/Connect";
 import ScrollReveal from "@/components/ScrollReveal";
 import DeploymentCountdown from "@/components/DeploymentCountdown";
 import { ScrollIndicator } from "@/components/ScrollProgress";
+import { ExperiencePanel } from "@/components/ExperiencePanel";
 
 export default function Home() {
   return (
@@ -25,6 +26,7 @@ export default function Home() {
       <Terminal />
       <InfectionCounter />
       <FluxPlayer />
+      <ExperiencePanel />
 
       {/* HERO SECTION */}
       <section className="w-full max-w-5xl flex flex-col items-center text-center gap-8">
