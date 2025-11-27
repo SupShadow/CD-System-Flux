@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
-import { TRACKS, Track, getReleasedTracks } from "@/lib/tracks";
+import { TRACKS, Track, getReleasedTracks, getArtworkPath } from "@/lib/tracks";
 import { assetPath } from "@/lib/utils";
 
 interface StemGains {
@@ -590,6 +590,152 @@ export function useAudioEngine(): AudioEngine {
         setCurrentTime(0);
         setDuration(0);
     }, [currentTrackIndex]);
+
+    // Media Session API for iOS Lock Screen controls
+    const updateMediaSession = useCallback(() => {
+        if (!("mediaSession" in navigator)) return;
+
+        const track = availableTracks[currentTrackIndex];
+        if (!track) return;
+
+        try {
+            // Get track-specific artwork or fallback to app icons
+            const artworkPath = getArtworkPath(track);
+
+            // Set metadata for lock screen display
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: "Julian Guggeis",
+                album: "SYSTEM FLUX",
+                artwork: [
+                    // Track-specific artwork (if exists)
+                    {
+                        src: assetPath(artworkPath),
+                        sizes: "512x512",
+                        type: "image/jpeg",
+                    },
+                    // Fallback to app icons for different sizes
+                    {
+                        src: assetPath("/icons/icon-512x512.png"),
+                        sizes: "512x512",
+                        type: "image/png",
+                    },
+                    {
+                        src: assetPath("/icons/icon-384x384.png"),
+                        sizes: "384x384",
+                        type: "image/png",
+                    },
+                    {
+                        src: assetPath("/icons/icon-192x192.png"),
+                        sizes: "192x192",
+                        type: "image/png",
+                    },
+                    {
+                        src: assetPath("/icons/icon-128x128.png"),
+                        sizes: "128x128",
+                        type: "image/png",
+                    },
+                ],
+            });
+
+            // Update playback state
+            navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+        } catch (e) {
+            console.warn("[MediaSession] Failed to update metadata:", e);
+        }
+    }, [availableTracks, currentTrackIndex, isPlaying]);
+
+    // Register Media Session action handlers
+    useEffect(() => {
+        if (!("mediaSession" in navigator)) return;
+
+        try {
+            // Play/Pause handlers
+            navigator.mediaSession.setActionHandler("play", () => {
+                togglePlay();
+            });
+
+            navigator.mediaSession.setActionHandler("pause", () => {
+                togglePlay();
+            });
+
+            // Track navigation
+            navigator.mediaSession.setActionHandler("previoustrack", () => {
+                playPrev();
+            });
+
+            navigator.mediaSession.setActionHandler("nexttrack", () => {
+                playNext();
+            });
+
+            // Seek handlers
+            navigator.mediaSession.setActionHandler("seekto", (details) => {
+                if (details.seekTime !== undefined) {
+                    seek(details.seekTime);
+                }
+            });
+
+            navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+                const skipTime = details.seekOffset || 10;
+                seek(Math.max(0, currentTime - skipTime));
+            });
+
+            navigator.mediaSession.setActionHandler("seekforward", (details) => {
+                const skipTime = details.seekOffset || 10;
+                seek(Math.min(duration, currentTime + skipTime));
+            });
+        } catch (e) {
+            console.warn("[MediaSession] Failed to set action handlers:", e);
+        }
+
+        return () => {
+            // Cleanup handlers on unmount
+            if ("mediaSession" in navigator) {
+                try {
+                    navigator.mediaSession.setActionHandler("play", null);
+                    navigator.mediaSession.setActionHandler("pause", null);
+                    navigator.mediaSession.setActionHandler("previoustrack", null);
+                    navigator.mediaSession.setActionHandler("nexttrack", null);
+                    navigator.mediaSession.setActionHandler("seekto", null);
+                    navigator.mediaSession.setActionHandler("seekbackward", null);
+                    navigator.mediaSession.setActionHandler("seekforward", null);
+                } catch {
+                    // Ignore cleanup errors
+                }
+            }
+        };
+    }, [togglePlay, playPrev, playNext, seek, currentTime, duration]);
+
+    // Update Media Session metadata when track or playback state changes
+    useEffect(() => {
+        updateMediaSession();
+    }, [updateMediaSession]);
+
+    // Update position state every second for lock screen progress bar
+    useEffect(() => {
+        if (!("mediaSession" in navigator) || !isPlaying || duration <= 0) return;
+
+        const updatePositionState = () => {
+            try {
+                navigator.mediaSession.setPositionState({
+                    duration: duration,
+                    playbackRate: 1,
+                    position: Math.min(currentTime, duration),
+                });
+            } catch (e) {
+                // Position state not supported or invalid values
+                console.warn("[MediaSession] Failed to update position state:", e);
+            }
+        };
+
+        // Update immediately
+        updatePositionState();
+
+        // Then update every second
+        const interval = setInterval(updatePositionState, 1000);
+
+        return () => clearInterval(interval);
+    }, [isPlaying, duration, currentTime]);
 
     return {
         // State
