@@ -43,3 +43,6 @@ next-env.d.ts
 # Windows reserved names
 nul
 NUL
+
+# Claude Code local settings
+.claude/settings.local.json
