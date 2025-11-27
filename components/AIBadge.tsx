@@ -13,21 +13,114 @@ export default function AIBadge() {
     if (!mounted) return null;
 
     return (
-        <a
-            href="https://derguggeis.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Erstellt von Guggeis.AI (öffnet in neuem Fenster)"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="beat-pulse hidden md:block"
-            style={{
-                position: "fixed",
-                bottom: "144px",
-                right: "16px",
-                zIndex: 60,
-            }}
-        >
+        <>
+            {/* Mobile AI Button */}
+            <a
+                href="https://derguggeis.de"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Erstellt von Guggeis.AI (öffnet in neuem Fenster)"
+                className="md:hidden"
+                style={{
+                    position: "fixed",
+                    bottom: "90px",
+                    right: "12px",
+                    zIndex: 60,
+                }}
+            >
+                <div
+                    style={{
+                        position: "relative",
+                        padding: "6px 10px",
+                        backgroundColor: "rgba(10, 10, 15, 0.95)",
+                        backdropFilter: "blur(4px)",
+                        border: "1px solid rgba(255, 69, 0, 0.5)",
+                        boxShadow: "0 0 12px rgba(255, 69, 0, 0.2)",
+                    }}
+                >
+                    {/* Diagonal accent line */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "-20px",
+                            left: "50%",
+                            width: "1px",
+                            height: "20px",
+                            background: "linear-gradient(to bottom, transparent, rgba(255, 69, 0, 0.6))",
+                            transform: "rotate(-30deg)",
+                            transformOrigin: "bottom center",
+                        }}
+                    />
+
+                    {/* Content */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span
+                            style={{
+                                fontSize: "11px",
+                                animation: "pulse 2s ease-in-out infinite",
+                            }}
+                        >
+                            ⚡
+                        </span>
+                        <span
+                            style={{
+                                fontFamily: "monospace",
+                                fontSize: "9px",
+                                letterSpacing: "0.05em",
+                                color: "#FF4500",
+                                fontWeight: "bold",
+                            }}
+                        >
+                            GUGGEIS.AI
+                        </span>
+                    </div>
+
+                    {/* Corner brackets */}
+                    <div style={{ position: "absolute", top: 0, left: 0, width: "6px", height: "6px", borderTop: "1px solid rgba(255, 69, 0, 0.6)", borderLeft: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                    <div style={{ position: "absolute", top: 0, right: 0, width: "6px", height: "6px", borderTop: "1px solid rgba(255, 69, 0, 0.6)", borderRight: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, width: "6px", height: "6px", borderBottom: "1px solid rgba(255, 69, 0, 0.6)", borderLeft: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                    <div style={{ position: "absolute", bottom: 0, right: 0, width: "6px", height: "6px", borderBottom: "1px solid rgba(255, 69, 0, 0.6)", borderRight: "1px solid rgba(255, 69, 0, 0.6)" }} />
+                </div>
+
+                {/* Pulsing status dot */}
+                <div
+                    style={{
+                        position: "absolute",
+                        top: "-3px",
+                        right: "-3px",
+                        width: "6px",
+                        height: "6px",
+                        borderRadius: "50%",
+                        backgroundColor: "#FF4500",
+                        animation: "pulse 1.5s ease-in-out infinite",
+                    }}
+                />
+
+                {/* CSS Animation */}
+                <style jsx>{`
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; transform: scale(1); }
+                        50% { opacity: 0.6; transform: scale(1.2); }
+                    }
+                `}</style>
+            </a>
+
+            {/* Desktop AI Button */}
+            <a
+                href="https://derguggeis.de"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Erstellt von Guggeis.AI (öffnet in neuem Fenster)"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className="beat-pulse hidden md:block"
+                style={{
+                    position: "fixed",
+                    bottom: "144px",
+                    right: "16px",
+                    zIndex: 60,
+                }}
+            >
             <div
                 style={{
                     position: "relative",
@@ -122,5 +215,6 @@ export default function AIBadge() {
                 }
             `}</style>
         </a>
+        </>
     );
 }
