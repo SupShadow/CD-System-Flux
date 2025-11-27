@@ -34,11 +34,26 @@ export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisu
     const { disableFlashing } = useAccessibility();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [mounted, setMounted] = useState(false);
+    const [isMobileDevice, setIsMobileDevice] = useState(false);
     const isVisible = usePageVisibility();
 
     useEffect(() => {
         setMounted(true);
+        // Check if device is mobile/small screen
+        const checkMobile = () => {
+            setIsMobileDevice(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
     }, []);
+
+    // Auto-close on mobile devices to prevent issues
+    useEffect(() => {
+        if (isOpen && isMobileDevice) {
+            onClose();
+        }
+    }, [isOpen, isMobileDevice, onClose]);
 
     // Handle escape key
     useEffect(() => {
@@ -245,7 +260,8 @@ export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisu
         };
     }, [isOpen, mounted, isVisible, analyserRef, currentTrack, disableFlashing]);
 
-    if (!mounted) return null;
+    // Don't render on mobile or before mounting
+    if (!mounted || isMobileDevice) return null;
 
     return (
         <AnimatePresence>

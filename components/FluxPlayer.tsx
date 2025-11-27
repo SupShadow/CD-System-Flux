@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward, List, Volume2, Volume1, VolumeX, Maximize2, Keyboard } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useAudio } from "@/contexts/AudioContext";
+import { useExperience } from "@/contexts/ExperienceContext";
 import { useKeyboardShortcuts } from "@/hooks";
+import { useGenerativeSounds } from "@/hooks/useGenerativeSounds";
 import { getArtworkPath } from "@/lib/tracks";
 import TrackList from "./TrackList";
 import FullscreenVisualizer from "./FullscreenVisualizer";
@@ -429,7 +431,7 @@ export default function FluxPlayer() {
 
                                     <button
                                         onClick={() => setIsVisualizerOpen(true)}
-                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden sm:block"
+                                        className="p-2 text-stark/50 hover:text-signal transition-colors hidden md:block"
                                         aria-label="Open fullscreen visualizer (press F)"
                                     >
                                         <Maximize2 className="w-5 h-5" aria-hidden="true" />
