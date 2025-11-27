@@ -5,6 +5,23 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function SelectionGlitch() {
     const [isSelecting, setIsSelecting] = useState(false);
+    const [safeMode, setSafeMode] = useState(false);
+
+    // Check for safe mode from body class (set by AccessibilityProvider)
+    useEffect(() => {
+        const checkSafeMode = () => {
+            setSafeMode(document.body.classList.contains("safe-mode"));
+        };
+
+        // Initial check
+        checkSafeMode();
+
+        // Watch for changes
+        const observer = new MutationObserver(checkSafeMode);
+        observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+        return () => observer.disconnect();
+    }, []);
     const [glitchPosition, setGlitchPosition] = useState({ x: 0, y: 0 });
     const [glitchKey, setGlitchKey] = useState(0);
 
@@ -79,9 +96,9 @@ export default function SelectionGlitch() {
                 }
             `}</style>
 
-            {/* Glitch overlay effect */}
+            {/* Glitch overlay effect - disabled in safe mode for epilepsy safety */}
             <AnimatePresence>
-                {isSelecting && (
+                {isSelecting && !safeMode && (
                     <>
                         {/* Screen glitch lines */}
                         <motion.div

@@ -63,6 +63,15 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    // Add/remove safe-mode class on document body for CSS-based animation control
+    useEffect(() => {
+        if (safeMode) {
+            document.body.classList.add("safe-mode");
+        } else {
+            document.body.classList.remove("safe-mode");
+        }
+    }, [safeMode]);
+
     // Disable flashing if either reduced motion or safe mode is enabled
     const disableFlashing = prefersReducedMotion || safeMode;
     const disableGlitch = prefersReducedMotion || safeMode;

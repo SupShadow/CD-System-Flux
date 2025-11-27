@@ -2,8 +2,9 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, BarChart2, Disc3, Clock, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Track } from "@/lib/tracks";
+import { cn, assetPath } from "@/lib/utils";
+import { Track, getArtworkPath } from "@/lib/tracks";
+import Image from "next/image";
 
 interface TrackListProps {
     isOpen: boolean;
@@ -49,14 +50,18 @@ export default function TrackList({ isOpen, onClose, currentTrack, onSelect, isP
                         /* Single track - special display */
                         <div className="p-4 md:p-6">
                             {/* Current track - highlighted */}
-                            <div className="border border-signal/50 bg-signal/5 p-4 md:p-6 mb-4">
+                            <div className="border border-signal/50 bg-signal/5 p-4 md:p-6 mb-6">
                                 <div className="flex items-start gap-4">
                                     <div className="relative">
-                                        <div className="w-16 h-16 md:w-20 md:h-20 border-2 border-signal/30 bg-signal/10 flex items-center justify-center">
-                                            <Disc3 className={cn(
-                                                "w-8 h-8 md:w-10 md:h-10 text-signal",
-                                                isPlaying && "animate-spin"
-                                            )} style={{ animationDuration: "3s" }} />
+                                        <div className="w-16 h-16 md:w-20 md:h-20 border-2 border-signal/30 bg-signal/10 overflow-hidden">
+                                            <Image
+                                                src={assetPath(getArtworkPath(tracks[0]))}
+                                                alt={tracks[0].title}
+                                                width={80}
+                                                height={80}
+                                                className="w-full h-full object-cover"
+                                                unoptimized
+                                            />
                                         </div>
                                         {isPlaying && (
                                             <motion.div
@@ -90,17 +95,23 @@ export default function TrackList({ isOpen, onClose, currentTrack, onSelect, isP
                             </div>
 
                             {/* Coming soon message */}
-                            <div className="border border-dashed border-stark/20 p-4 text-center">
-                                <div className="flex items-center justify-center gap-2 mb-2">
-                                    <Clock className="w-4 h-4 text-stark/40" aria-hidden="true" />
-                                    <span className="font-mono text-xs text-stark/40">MORE_TRACKS_INCOMING</span>
-                                </div>
-                                <p className="font-mono text-[10px] text-stark/30">
-                                    Weitere Tracks werden bald verfügbar sein
-                                </p>
-                                <div className="flex items-center justify-center gap-1 mt-3">
-                                    <Loader2 className="w-3 h-3 text-signal/50 animate-spin" aria-hidden="true" />
-                                    <span className="font-mono text-[9px] text-signal/50">LOADING_FUTURE_RELEASES</span>
+                            <div className="border border-stark/20 bg-stark/5 p-4 md:p-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 border border-dashed border-stark/30 flex items-center justify-center shrink-0">
+                                        <Clock className="w-5 h-5 text-stark/40" aria-hidden="true" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-mono text-xs text-stark/50 tracking-wider mb-1">
+                                            MORE_TRACKS_INCOMING
+                                        </div>
+                                        <p className="font-mono text-[10px] text-stark/40">
+                                            Weitere Tracks werden bald verfügbar sein
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <Loader2 className="w-3 h-3 text-signal/40 animate-spin" aria-hidden="true" />
+                                        <span className="font-mono text-[9px] text-signal/40 hidden md:inline">LOADING...</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

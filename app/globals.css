@@ -296,6 +296,50 @@ select:focus-visible {
 }
 
 /* ============================================
+   SAFE MODE (Manual Toggle) - Epilepsy Safety
+   Applied when user clicks the Safe Mode button
+   ============================================ */
+body.safe-mode {
+  /* Disable glitch text animations */
+  .glitch-text::before,
+  .glitch-text::after {
+    animation: none !important;
+    display: none;
+  }
+
+  /* Disable parallax effects */
+  .parallax-container,
+  .parallax-layer-back,
+  .parallax-layer-front {
+    transform: none !important;
+    perspective: none !important;
+  }
+
+  /* Disable skeleton wave animation */
+  .skeleton-wave::after {
+    animation: none !important;
+    display: none;
+  }
+
+  /* Disable scroll section transitions */
+  .scroll-section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  /* Disable beat-pulse effects */
+  .beat-pulse {
+    transform: none !important;
+  }
+
+  /* Disable beat-glow effects */
+  .beat-glow {
+    filter: none !important;
+  }
+}
+
+/* ============================================
    HIGH CONTRAST MODE SUPPORT
    ============================================ */
 @media (prefers-contrast: high) {

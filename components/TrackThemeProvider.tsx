@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAudio } from "@/contexts/AudioContext";
 import { useBeat } from "@/contexts/BeatContext";
+import { useAccessibility } from "@/contexts/AccessibilityContext";
 
 // Helper to convert hex to RGB
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -20,6 +21,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 export default function TrackThemeProvider() {
     const { currentTrack, isPlaying } = useAudio();
     const { isBeat, beatIntensity, bassLevel, energy } = useBeat();
+    const { disableFlashing } = useAccessibility();
     const [mounted, setMounted] = useState(false);
     const [prevColor, setPrevColor] = useState<string | null>(null);
     const [showFlash, setShowFlash] = useState(false);
@@ -42,15 +44,15 @@ export default function TrackThemeProvider() {
             document.documentElement.style.setProperty("--track-color", color);
             document.documentElement.style.setProperty("--track-color-rgb", `${rgb.r}, ${rgb.g}, ${rgb.b}`);
 
-            // Trigger flash effect on color change
-            if (prevColor && prevColor !== color) {
+            // Trigger flash effect on color change (disabled in safe mode for epilepsy safety)
+            if (prevColor && prevColor !== color && !disableFlashing) {
                 setShowFlash(true);
                 setTimeout(() => setShowFlash(false), 300);
             }
 
             setPrevColor(color);
         }
-    }, [currentTrack.color, mounted, prevColor]);
+    }, [currentTrack.color, mounted, prevColor, disableFlashing]);
 
     // Beat reactive CSS variables
     useEffect(() => {
@@ -64,9 +66,9 @@ export default function TrackThemeProvider() {
         document.documentElement.style.setProperty("--beat-glow", (beatIntensity * 20).toFixed(1));
     }, [mounted, beatIntensity, bassLevel, energy]);
 
-    // Beat flash effect (throttled)
+    // Beat flash effect (throttled) - disabled in safe mode for epilepsy safety
     useEffect(() => {
-        if (isBeat && isPlaying) {
+        if (isBeat && isPlaying && !disableFlashing) {
             const now = Date.now();
             if (now - lastBeatRef.current > 150) { // Throttle beat flashes
                 lastBeatRef.current = now;
@@ -74,7 +76,7 @@ export default function TrackThemeProvider() {
                 setTimeout(() => setShowBeatFlash(false), 100);
             }
         }
-    }, [isBeat, isPlaying]);
+    }, [isBeat, isPlaying, disableFlashing]);
 
     if (!mounted) return null;
 

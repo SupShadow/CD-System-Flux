@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, AlertTriangle } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
 import { useAudio } from "@/contexts/AudioContext";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
-import { VisualizerType } from "@/lib/tracks";
 import { usePageVisibility } from "@/hooks";
 
 interface FullscreenVisualizerProps {
@@ -29,36 +28,14 @@ function rgba(hex: string, alpha: number): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Wrapper component - only mounts inner component when open
 export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisualizerProps) {
-    const { analyserRef, isPlaying, currentTrack } = useAudio();
-    const { disableFlashing } = useAccessibility();
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [mounted, setMounted] = useState(false);
-    const [isMobileDevice, setIsMobileDevice] = useState(false);
-    const isVisible = usePageVisibility();
-
+    // Handle escape key at wrapper level (no other hooks here)
     useEffect(() => {
-        setMounted(true);
-        // Check if device is mobile/small screen
-        const checkMobile = () => {
-            setIsMobileDevice(window.innerWidth < 768);
-        };
-        checkMobile();
-        window.addEventListener("resize", checkMobile);
-        return () => window.removeEventListener("resize", checkMobile);
-    }, []);
+        if (!isOpen) return;
 
-    // Auto-close on mobile devices to prevent issues
-    useEffect(() => {
-        if (isOpen && isMobileDevice) {
-            onClose();
-        }
-    }, [isOpen, isMobileDevice, onClose]);
-
-    // Handle escape key
-    useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && isOpen) {
+            if (e.key === "Escape") {
                 onClose();
             }
         };
@@ -66,9 +43,22 @@ export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisu
         return () => window.removeEventListener("keydown", handleEscape);
     }, [isOpen, onClose]);
 
+    // Only render inner component when open to avoid hook count issues
+    if (!isOpen) return null;
+
+    return <FullscreenVisualizerInner onClose={onClose} />;
+}
+
+// Inner component with all the visualization hooks
+function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
+    const { analyserRef, isPlaying, currentTrack } = useAudio();
+    const { disableFlashing } = useAccessibility();
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const isVisible = usePageVisibility();
+
     // Main visualization
     useEffect(() => {
-        if (!isOpen || !mounted || !isVisible) return;
+        if (!isVisible) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -258,95 +248,88 @@ export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisu
             window.removeEventListener("resize", resize);
             cancelAnimationFrame(animationFrame);
         };
-    }, [isOpen, mounted, isVisible, analyserRef, currentTrack, disableFlashing]);
-
-    // Don't render on mobile or before mounting
-    if (!mounted || isMobileDevice) return null;
+    }, [isVisible, analyserRef, currentTrack, disableFlashing]);
 
     return (
-        <AnimatePresence>
-            {isOpen && (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] bg-void"
+        >
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+            {/* Track info overlay */}
+            <motion.div
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="absolute top-8 left-1/2 -translate-x-1/2 text-center"
+            >
+                <div className="font-mono text-xs tracking-widest mb-2" style={{ color: rgba(currentTrack.color, 0.5) }}>
+                    NOW_PLAYING
+                </div>
+                <div className="font-bold text-2xl md:text-4xl text-stark tracking-tight">
+                    {currentTrack.title.toUpperCase()}
+                </div>
+                <div className="font-mono text-sm text-stark/50 mt-2">
+                    JULIAN GUGGEIS // SYSTEM FLUX
+                </div>
+            </motion.div>
+
+            {/* Visualizer type indicator */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="absolute top-8 left-8 font-mono text-[10px] tracking-widest"
+                style={{ color: rgba(currentTrack.color, 0.5) }}
+            >
+                VIS_MODE: {currentTrack.visualizer.toUpperCase()}
+            </motion.div>
+
+            {/* Status indicator */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3"
+            >
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="fixed inset-0 z-[100] bg-void"
-                >
-                    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: currentTrack.color }}
+                    animate={isPlaying ? {
+                        scale: [1, 1.5, 1],
+                        opacity: [1, 0.5, 1],
+                    } : {}}
+                    transition={{ duration: 1, repeat: Infinity }}
+                />
+                <span className="font-mono text-xs text-stark/50 tracking-widest">
+                    {isPlaying ? "SIGNAL_ACTIVE" : "SIGNAL_PAUSED"}
+                </span>
+            </motion.div>
 
-                    {/* Track info overlay */}
-                    <motion.div
-                        initial={{ y: -50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="absolute top-8 left-1/2 -translate-x-1/2 text-center"
-                    >
-                        <div className="font-mono text-xs tracking-widest mb-2" style={{ color: rgba(currentTrack.color, 0.5) }}>
-                            NOW_PLAYING
-                        </div>
-                        <div className="font-bold text-2xl md:text-4xl text-stark tracking-tight">
-                            {currentTrack.title.toUpperCase()}
-                        </div>
-                        <div className="font-mono text-sm text-stark/50 mt-2">
-                            JULIAN GUGGEIS // SYSTEM FLUX
-                        </div>
-                    </motion.div>
+            {/* Close button */}
+            <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                onClick={onClose}
+                className="absolute top-6 right-6 p-3 border text-stark/70 hover:text-stark transition-colors bg-void/50 backdrop-blur-sm"
+                style={{ borderColor: rgba(currentTrack.color, 0.3) }}
+            >
+                <X className="w-6 h-6" />
+            </motion.button>
 
-                    {/* Visualizer type indicator */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.4 }}
-                        className="absolute top-8 left-8 font-mono text-[10px] tracking-widest"
-                        style={{ color: rgba(currentTrack.color, 0.5) }}
-                    >
-                        VIS_MODE: {currentTrack.visualizer.toUpperCase()}
-                    </motion.div>
+            {/* ESC hint */}
+            <div className="absolute bottom-8 right-8 font-mono text-[10px] text-stark/30">
+                [ESC] EXIT
+            </div>
 
-                    {/* Status indicator */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3"
-                    >
-                        <motion.div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: currentTrack.color }}
-                            animate={isPlaying ? {
-                                scale: [1, 1.5, 1],
-                                opacity: [1, 0.5, 1],
-                            } : {}}
-                            transition={{ duration: 1, repeat: Infinity }}
-                        />
-                        <span className="font-mono text-xs text-stark/50 tracking-widest">
-                            {isPlaying ? "SIGNAL_ACTIVE" : "SIGNAL_PAUSED"}
-                        </span>
-                    </motion.div>
-
-                    {/* Close button */}
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2 }}
-                        onClick={onClose}
-                        className="absolute top-6 right-6 p-3 border text-stark/70 hover:text-stark transition-colors bg-void/50 backdrop-blur-sm"
-                        style={{ borderColor: rgba(currentTrack.color, 0.3) }}
-                    >
-                        <X className="w-6 h-6" />
-                    </motion.button>
-
-                    {/* ESC hint */}
-                    <div className="absolute bottom-8 right-8 font-mono text-[10px] text-stark/30">
-                        [ESC] EXIT
-                    </div>
-
-                    {/* Scanlines overlay */}
-                    <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] opacity-30" />
-                </motion.div>
-            )}
-        </AnimatePresence>
+            {/* Scanlines overlay */}
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] opacity-30" />
+        </motion.div>
     );
 }
 

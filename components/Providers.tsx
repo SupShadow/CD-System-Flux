@@ -7,11 +7,6 @@ import { ToastProvider } from "@/contexts/ToastContext";
 import { SoundProvider } from "@/contexts/SoundContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AudioErrorHandler } from "@/components/AudioErrorHandler";
-import GlobalSoundEffects from "@/components/GlobalSoundEffects";
-import AudioReactiveLayer from "@/components/AudioReactiveLayer";
-import TrackThemeProvider from "@/components/TrackThemeProvider";
-import GlitchTransition from "@/components/GlitchTransition";
 import SafeModeToggle from "@/components/SafeModeToggle";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -20,13 +15,8 @@ export function Providers({ children }: { children: ReactNode }) {
             <AccessibilityProvider>
                 <ToastProvider>
                     <SoundProvider>
-                        <GlobalSoundEffects />
                         <AudioProvider>
                             <BeatProvider>
-                                <AudioErrorHandler />
-                                <AudioReactiveLayer />
-                                <TrackThemeProvider />
-                                <GlitchTransition />
                                 <SafeModeToggle />
                                 {children}
                             </BeatProvider>

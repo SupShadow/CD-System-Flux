@@ -39,6 +39,12 @@ export default function TiltCard({
     const glareX = useTransform(mouseX, [0, 1], [0, 100]);
     const glareY = useTransform(mouseY, [0, 1], [0, 100]);
 
+    // Glare background gradient - MUST be called at top level, not in JSX
+    const glareBackground = useTransform(
+        [glareX, glareY],
+        ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255, 69, 0, 0.8), transparent 50%)`
+    );
+
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         if (!cardRef.current) return;
 
@@ -101,10 +107,7 @@ export default function TiltCard({
                     className="absolute inset-0 pointer-events-none overflow-hidden"
                     style={{
                         opacity: isHovered ? 0.15 : 0,
-                        background: useTransform(
-                            [glareX, glareY],
-                            ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255, 69, 0, 0.8), transparent 50%)`
-                        ),
+                        background: glareBackground,
                     }}
                     transition={{ opacity: { duration: 0.2 } }}
                 />
