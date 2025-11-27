@@ -23,11 +23,15 @@ export default function TrackList({ isOpen, onClose, currentTrack, onSelect, isP
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="fixed bottom-16 left-0 right-0 bg-void-deep/95 border-t-2 border-signal z-[55] shadow-[0_-10px_40px_rgba(255,69,0,0.2)] backdrop-blur-xl max-h-[60vh] overflow-hidden flex flex-col"
+                    initial={{ y: "100%", opacity: 0.8 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: "100%", opacity: 0 }}
+                    transition={{
+                        type: "tween",
+                        duration: 0.25,
+                        ease: [0.4, 0, 0.2, 1]
+                    }}
+                    className="fixed bottom-[72px] md:bottom-[100px] left-0 right-0 bg-void-deep/95 border-t-2 border-signal z-[45] shadow-[0_-10px_40px_rgba(255,69,0,0.2)] backdrop-blur-xl max-h-[50vh] md:max-h-[60vh] overflow-hidden flex flex-col"
                     id="track-list-panel"
                     role="dialog"
                     aria-label="Track list"
