@@ -87,7 +87,7 @@ export default function Home() {
             </a>
             <span className="text-stark/30 hidden md:inline">{"//"}</span>
             <a
-              href="https://derguggeis.de/datenschutz"
+              href="https://www.derguggeis.de/datenschutzerklaerung"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-signal transition-colors text-[10px] md:text-xs"
