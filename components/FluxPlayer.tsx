@@ -461,7 +461,7 @@ export default function FluxPlayer() {
                         <div className="font-mono text-[9px] text-stark/40 flex items-center gap-2">
                             <a href="https://derguggeis.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">IMPRESSUM</a>
                             <span className="text-stark/20">//</span>
-                            <a href="https://derguggeis.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">DATENSCHUTZ</a>
+                            <a href="https://www.derguggeis.de/datenschutzerklaerung" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">DATENSCHUTZ</a>
                         </div>
                         <div className="font-mono text-[9px] text-stark/60">
                             {availableTracks.length} AGENTS
