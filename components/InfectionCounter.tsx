@@ -29,7 +29,7 @@ export default function InfectionCounter() {
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="fixed bottom-28 left-4 md:bottom-32 md:left-6 z-40"
+            className="hidden md:block fixed bottom-32 left-6 z-40"
             role="status"
             aria-live="polite"
             aria-label="Netzwerk-Verbreitungsstatus"

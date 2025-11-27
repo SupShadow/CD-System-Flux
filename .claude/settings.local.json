@@ -44,7 +44,8 @@
       "Bash(cmd /c \"del c:\\Users\\Julian\\CD-System-Flux\\components\\SystemStatus.tsx\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(cmd /c \"cd /d c:\\Users\\Julian\\CD-System-Flux && del /f /q \\?\\c:\\Users\\Julian\\CD-System-Flux\\nul\")"
+      "Bash(cmd /c \"cd /d c:\\Users\\Julian\\CD-System-Flux && del /f /q \\?\\c:\\Users\\Julian\\CD-System-Flux\\nul\")",
+      "Bash(npx next build)"
     ],
     "deny": [],
     "ask": []

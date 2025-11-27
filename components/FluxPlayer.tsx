@@ -281,18 +281,18 @@ export default function FluxPlayer() {
                     <div className="px-4 md:px-6 py-3">
                         <div className="flex items-center justify-between gap-4">
                             {/* Left: Agent Info */}
-                            <div className="flex items-center gap-4 min-w-0 flex-1">
-                                {/* Agent badge - beat reactive */}
-                                <div className="hidden sm:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5 beat-border">
+                            <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                                {/* Agent badge - beat reactive - hidden on mobile */}
+                                <div className="hidden md:flex flex-col items-center justify-center w-14 h-14 border border-signal/30 bg-signal/5 beat-border">
                                     <span className="font-mono text-[10px] text-stark/50">AGENT</span>
                                     <span className="font-mono text-xl text-signal font-bold">{agentNumber}</span>
                                 </div>
 
                                 {/* Track info */}
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-3 mb-1">
+                                    <div className="flex items-center gap-2 md:gap-3 mb-1">
                                         <AgentStatus isActive={isPlaying} />
-                                        <span className="font-mono text-[10px] text-stark/60 hidden md:inline">
+                                        <span className="font-mono text-[10px] text-stark/60 hidden lg:inline">
                                             {formatTime(mounted ? currentTime : 0)} / {formatTime(duration)}
                                         </span>
                                     </div>
@@ -316,12 +316,12 @@ export default function FluxPlayer() {
                             </div>
 
                             {/* Right: Controls */}
-                            <div className="flex items-center gap-2 md:gap-4">
+                            <div className="flex items-center gap-1 md:gap-2">
                                 {/* Playback controls */}
-                                <div className="flex items-center gap-1" role="group" aria-label="Playback controls">
+                                <div className="flex items-center gap-0.5 md:gap-1" role="group" aria-label="Playback controls">
                                     <button
                                         onClick={playPrev}
-                                        className="p-2 text-stark/50 hover:text-signal transition-colors"
+                                        className="p-1.5 md:p-2 text-stark/50 hover:text-signal transition-colors"
                                         aria-label="Previous track"
                                     >
                                         <SkipBack className="w-4 h-4" aria-hidden="true" />
@@ -330,7 +330,7 @@ export default function FluxPlayer() {
                                     <button
                                         onClick={togglePlay}
                                         className={cn(
-                                            "w-12 h-12 flex items-center justify-center border-2 transition-all",
+                                            "w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border-2 transition-all",
                                             isPlaying
                                                 ? "border-signal bg-signal/10 text-signal shadow-[0_0_20px_rgba(255,69,0,0.3)]"
                                                 : "border-stark/30 text-stark/70 hover:border-signal hover:text-signal"
@@ -339,15 +339,15 @@ export default function FluxPlayer() {
                                         aria-pressed={isPlaying}
                                     >
                                         {isPlaying ? (
-                                            <Pause className="w-5 h-5" aria-hidden="true" />
+                                            <Pause className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
                                         ) : (
-                                            <Play className="w-5 h-5 ml-0.5" aria-hidden="true" />
+                                            <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" aria-hidden="true" />
                                         )}
                                     </button>
 
                                     <button
                                         onClick={playNext}
-                                        className="p-2 text-stark/50 hover:text-signal transition-colors"
+                                        className="p-1.5 md:p-2 text-stark/50 hover:text-signal transition-colors"
                                         aria-label="Next track"
                                     >
                                         <SkipForward className="w-4 h-4" aria-hidden="true" />
@@ -355,22 +355,22 @@ export default function FluxPlayer() {
                                 </div>
 
                                 {/* Secondary controls */}
-                                <div className="flex items-center gap-2 border-l border-stark/10 pl-2 md:pl-4" role="group" aria-label="Additional controls">
+                                <div className="flex items-center gap-1 md:gap-2 border-l border-stark/10 pl-1 md:pl-4" role="group" aria-label="Additional controls">
                                     <button
                                         onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
                                         className={cn(
-                                            "p-2 transition-colors",
+                                            "p-1.5 md:p-2 transition-colors",
                                             isPlaylistOpen ? "text-signal" : "text-stark/50 hover:text-signal"
                                         )}
                                         aria-label={`Track list, ${availableTracks.length} tracks available`}
                                         aria-expanded={isPlaylistOpen}
                                         aria-controls="track-list-panel"
                                     >
-                                        <List className="w-5 h-5" aria-hidden="true" />
+                                        <List className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
                                     </button>
 
                                     {/* Volume control group */}
-                                    <div className="flex items-center gap-2">
+                                    <div className="hidden md:flex items-center gap-2">
                                         <button
                                             onClick={() => setIsMuted(!isMuted)}
                                             className="p-2 text-stark/50 hover:text-signal transition-colors"
@@ -408,10 +408,10 @@ export default function FluxPlayer() {
                                                 [&::-moz-range-thumb]:cursor-pointer"
                                             aria-label="Volume"
                                         />
+                                        <span className="font-mono text-[9px] text-stark/40">
+                                            {Math.round((isMuted ? 0 : volume) * 100)}%
+                                        </span>
                                     </div>
-                                    <span className="hidden sm:inline font-mono text-[9px] text-stark/40">
-                                        {Math.round((isMuted ? 0 : volume) * 100)}%
-                                    </span>
 
                                     <button
                                         onClick={() => setIsVisualizerOpen(true)}
@@ -439,21 +439,18 @@ export default function FluxPlayer() {
                         </div>
                     </div>
 
-                    {/* Bottom info bar */}
-                    <div className="px-4 md:px-6 py-1 border-t border-stark/5 flex justify-between items-center">
+                    {/* Bottom info bar - hidden on mobile for cleaner UI */}
+                    <div className="hidden md:flex px-6 py-1 border-t border-stark/5 justify-between items-center">
                         <div className="font-mono text-[9px] text-stark/60">
                             FLUX_OS v1.0
                         </div>
-                        <div className="font-mono text-[9px] text-stark/40 hidden sm:flex items-center gap-2">
+                        <div className="font-mono text-[9px] text-stark/40 flex items-center gap-2">
                             <a href="https://derguggeis.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">IMPRESSUM</a>
                             <span className="text-stark/20">//</span>
                             <a href="https://derguggeis.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-signal transition-colors">DATENSCHUTZ</a>
                         </div>
-                        <div className="font-mono text-[9px] text-stark/60 hidden sm:block">
+                        <div className="font-mono text-[9px] text-stark/60">
                             {availableTracks.length} AGENTS
-                        </div>
-                        <div className="font-mono text-[9px] text-signal/70 sm:hidden">
-                            ← SWIPE →
                         </div>
                     </div>
                 </motion.div>
