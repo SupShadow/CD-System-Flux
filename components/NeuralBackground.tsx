@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { motion } from "framer-motion";
 import { usePageVisibility, useIsMobile } from "@/hooks";
 
@@ -11,6 +11,50 @@ interface Node {
     delay: number;
     size: number;
 }
+
+// Memoized node component for better performance
+const GlowingNode = memo(function GlowingNode({
+    node,
+    isVisible,
+    isMobile
+}: {
+    node: Node;
+    isVisible: boolean;
+    isMobile: boolean;
+}) {
+    return (
+        <motion.div
+            className="absolute rounded-full"
+            style={{
+                left: `${node.x}%`,
+                top: `${node.y}%`,
+                width: node.size * 2,
+                height: node.size * 2,
+                background: "radial-gradient(circle, #FF4500 0%, rgba(255,69,0,0.5) 50%, transparent 100%)",
+                // Simplified shadow on mobile for better performance
+                boxShadow: isMobile
+                    ? `0 0 ${node.size * 4}px rgba(255,69,0,0.4)`
+                    : `0 0 ${node.size * 4}px rgba(255,69,0,0.6), 0 0 ${node.size * 8}px rgba(255,69,0,0.3)`,
+                willChange: "transform, opacity",
+                // Force GPU acceleration
+                transform: "translateZ(0)",
+            }}
+            animate={isVisible ? {
+                x: isMobile ? [0, 10, -8, 5, 0] : [0, 20, -15, 10, 0],
+                y: isMobile ? [0, -8, 10, -5, 0] : [0, -15, 20, -10, 0],
+                scale: isMobile ? [1, 1.15, 0.95, 1.1, 1] : [1, 1.3, 0.9, 1.2, 1],
+                opacity: [0.6, 1, 0.7, 0.9, 0.6],
+            } : {}}
+            transition={{
+                // Longer duration on mobile = fewer frames needed
+                duration: isMobile ? 20 + node.delay * 4 : 15 + node.delay * 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: node.delay,
+            }}
+        />
+    );
+});
 
 // Pre-defined positions to avoid hydration mismatch
 const INITIAL_NODES: Node[] = [
@@ -68,16 +112,17 @@ export default function NeuralBackground() {
         setMounted(true);
     }, []);
 
-    // Reduce nodes and connections on mobile for better performance
+    // Aggressively reduce nodes and connections on mobile for better performance
     const displayNodes = useMemo(() =>
-        isMobile ? INITIAL_NODES.slice(0, 12) : INITIAL_NODES,
+        isMobile ? INITIAL_NODES.slice(0, 8) : INITIAL_NODES,
         [isMobile]
     );
     const displayConnections = useMemo(() =>
-        isMobile ? CONNECTIONS.slice(0, 6) : CONNECTIONS,
+        isMobile ? CONNECTIONS.slice(0, 4) : CONNECTIONS,
         [isMobile]
     );
-    const particleCount = isMobile ? 4 : 12;
+    // Significantly reduce particles on mobile
+    const particleCount = isMobile ? 2 : 12;
 
     if (!mounted) return null;
 
@@ -86,20 +131,26 @@ export default function NeuralBackground() {
 
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-[1]">
-            {/* Large ambient glow spots - reduced on mobile */}
+            {/* Large ambient glow spots - reduced and optimized on mobile */}
             <motion.div
-                className="absolute w-[600px] h-[600px] rounded-full"
+                className="absolute rounded-full"
                 style={{
-                    background: "radial-gradient(circle, rgba(255,69,0,0.15) 0%, transparent 70%)",
+                    // Smaller on mobile for better performance
+                    width: isMobile ? 400 : 600,
+                    height: isMobile ? 400 : 600,
+                    background: `radial-gradient(circle, rgba(255,69,0,${isMobile ? 0.12 : 0.15}) 0%, transparent 70%)`,
                     left: "10%",
                     top: "20%",
+                    willChange: "transform, opacity",
+                    transform: "translateZ(0)",
                 }}
                 animate={isVisible ? {
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 0.8, 0.5],
+                    scale: isMobile ? [1, 1.1, 1] : [1, 1.2, 1],
+                    opacity: isMobile ? [0.4, 0.6, 0.4] : [0.5, 0.8, 0.5],
                 } : {}}
                 transition={{
-                    duration: 8,
+                    // Slower on mobile
+                    duration: isMobile ? 12 : 8,
                     repeat: Infinity,
                     ease: "easeInOut",
                 }}
@@ -147,16 +198,19 @@ export default function NeuralBackground() {
             )}
 
             {/* SVG for connection lines */}
-            <svg className="absolute inset-0 w-full h-full">
-                <defs>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                        <feMerge>
-                            <feMergeNode in="coloredBlur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </defs>
+            <svg className="absolute inset-0 w-full h-full" style={{ willChange: "auto" }}>
+                {/* Only render glow filter on desktop - very expensive on mobile GPUs */}
+                {!isMobile && (
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+                )}
 
                 {/* Animated connection lines - reduced on mobile */}
                 {displayConnections.map((conn, i) => {
@@ -169,17 +223,19 @@ export default function NeuralBackground() {
                             y1={`${fromNode.y}%`}
                             x2={`${toNode.x}%`}
                             y2={`${toNode.y}%`}
-                            stroke="rgba(255, 69, 0, 0.3)"
+                            stroke={isMobile ? "rgba(255, 69, 0, 0.4)" : "rgba(255, 69, 0, 0.3)"}
                             strokeWidth="1"
-                            filter="url(#glow)"
+                            // Skip expensive filter on mobile
+                            filter={isMobile ? undefined : "url(#glow)"}
                             initial={{ pathLength: 0, opacity: 0 }}
                             animate={isVisible ? {
                                 pathLength: [0, 1, 1, 0],
                                 opacity: [0, 0.6, 0.6, 0],
                             } : {}}
                             transition={{
-                                duration: 4,
-                                delay: i * 0.8,
+                                // Slower animation on mobile for smoother performance
+                                duration: isMobile ? 6 : 4,
+                                delay: i * (isMobile ? 1.2 : 0.8),
                                 repeat: Infinity,
                                 ease: "easeInOut",
                             }}
@@ -187,16 +243,17 @@ export default function NeuralBackground() {
                     );
                 })}
 
-                {/* Data pulses along connections - reduced on mobile */}
-                {displayConnections.slice(0, isMobile ? 3 : 8).map((conn, i) => {
+                {/* Data pulses along connections - significantly reduced on mobile */}
+                {displayConnections.slice(0, isMobile ? 2 : 8).map((conn, i) => {
                     const fromNode = INITIAL_NODES[conn.from];
                     const toNode = INITIAL_NODES[conn.to];
                     return (
                         <motion.circle
                             key={`pulse-${i}`}
-                            r="3"
+                            r={isMobile ? 2 : 3}
                             fill="#FF4500"
-                            filter="url(#glow)"
+                            // Skip expensive filter on mobile
+                            filter={isMobile ? undefined : "url(#glow)"}
                             initial={{
                                 cx: `${fromNode.x}%`,
                                 cy: `${fromNode.y}%`,
@@ -208,8 +265,9 @@ export default function NeuralBackground() {
                                 opacity: [0, 1, 1, 0],
                             } : {}}
                             transition={{
-                                duration: 2,
-                                delay: i * 1.5 + 1,
+                                // Slower animation on mobile
+                                duration: isMobile ? 3 : 2,
+                                delay: i * 2 + 1,
                                 repeat: Infinity,
                                 ease: "easeInOut",
                             }}
@@ -218,53 +276,38 @@ export default function NeuralBackground() {
                 })}
             </svg>
 
-            {/* Glowing Nodes - reduced on mobile */}
+            {/* Glowing Nodes - use memoized component for better performance */}
             {displayNodes.map((node) => (
-                <motion.div
+                <GlowingNode
                     key={node.id}
-                    className="absolute rounded-full"
-                    style={{
-                        left: `${node.x}%`,
-                        top: `${node.y}%`,
-                        width: node.size * 2,
-                        height: node.size * 2,
-                        background: "radial-gradient(circle, #FF4500 0%, rgba(255,69,0,0.5) 50%, transparent 100%)",
-                        boxShadow: `0 0 ${node.size * 4}px rgba(255,69,0,0.6), 0 0 ${node.size * 8}px rgba(255,69,0,0.3)`,
-                    }}
-                    animate={isVisible ? {
-                        x: [0, 20, -15, 10, 0],
-                        y: [0, -15, 20, -10, 0],
-                        scale: [1, 1.3, 0.9, 1.2, 1],
-                        opacity: [0.6, 1, 0.7, 0.9, 0.6],
-                    } : {}}
-                    transition={{
-                        duration: 15 + node.delay * 3,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: node.delay,
-                    }}
+                    node={node}
+                    isVisible={isVisible}
+                    isMobile={isMobile}
                 />
             ))}
 
-            {/* Floating particles - reduced on mobile, fixed orange color */}
+            {/* Floating particles - significantly reduced on mobile */}
             {[...Array(particleCount)].map((_, i) => (
                 <motion.div
                     key={`particle-${i}`}
                     className="absolute w-1 h-1 rounded-full"
                     style={{
-                        left: `${10 + i * 7}%`,
+                        left: `${10 + i * (isMobile ? 30 : 7)}%`,
                         top: `${15 + (i % 4) * 20}%`,
                         background: "rgba(255, 69, 0, 0.6)",
+                        willChange: "transform, opacity",
+                        transform: "translateZ(0)",
                     }}
                     animate={isVisible ? {
-                        y: [0, -100, 0],
-                        x: [0, 30, 0],
+                        y: isMobile ? [0, -60, 0] : [0, -100, 0],
+                        x: isMobile ? [0, 15, 0] : [0, 30, 0],
                         opacity: [0, 0.6, 0],
                         scale: [0.5, 1, 0.5],
                     } : {}}
                     transition={{
-                        duration: 8 + i,
-                        delay: i * 0.5,
+                        // Slower animation on mobile
+                        duration: isMobile ? 12 + i * 2 : 8 + i,
+                        delay: i * (isMobile ? 1 : 0.5),
                         repeat: Infinity,
                         ease: "easeInOut",
                     }}
