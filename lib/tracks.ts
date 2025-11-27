@@ -52,7 +52,7 @@ const COLORS = {
 export const TRACKS: Track[] = [
     { title: "Alles hat ein Ende", src: "/music/alles_hat_ein_ende.mp3", color: COLORS.purple, visualizer: "dissolve" },
     { title: "BUNKERBIT", src: "/music/bunkerbit.mp3", color: COLORS.lime, visualizer: "digital" },
-    { title: "Breathe No More", src: "/music/breathe_no_more.mp3", color: COLORS.cyan, visualizer: "breathe" },
+    { title: "Breathe No More", src: "/music/breathe_no_more.mp3", color: COLORS.cyan, visualizer: "breathe", releaseDate: "2025-12-05" },
     { title: "Clean Shot // Dead Mic", src: "/music/clean_shot_dead_mic.mp3", color: COLORS.red, visualizer: "targeting" },
     { title: "Click Shift Repeat", src: "/music/click_shift_repeat.mp3", color: COLORS.teal, visualizer: "grid" },
     { title: "Double Life", src: "/music/double_life.mp3", color: COLORS.magenta, visualizer: "mirror" },
