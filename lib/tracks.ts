@@ -25,6 +25,13 @@ export type VisualizerType =
     | "ice"         // Wenn Ich Friere - ice crystals
     | "trace";      // Tracing - line traces
 
+export interface StreamingLinks {
+    spotify?: string;
+    appleMusic?: string;
+    youtube?: string;
+    amazon?: string;
+}
+
 export interface Track {
     title: string;
     src: string;
@@ -33,7 +40,16 @@ export interface Track {
     visualizer: VisualizerType;
     releaseDate?: string; // Format: "YYYY-MM-DD" - tracks without date are unreleased
     gain?: number; // Volume multiplier (0-1), defaults to 1.0
+    streamingLinks?: StreamingLinks; // Optional track-specific streaming links
 }
+
+// Fallback artist page links (used when track-specific links are not available)
+export const FALLBACK_STREAMING_LINKS: Required<StreamingLinks> = {
+    spotify: "https://open.spotify.com/intl-de/artist/7sftGNX7UKWsHgOumCU2fP",
+    appleMusic: "https://music.apple.com/de/artist/julian-guggeis/956406644",
+    youtube: "https://www.youtube.com/channel/UCxtDtFap_gPnxMBEvspoG7w",
+    amazon: "https://music.amazon.de/artists/B00RZYPRYS/julian-guggeis",
+};
 
 // Color palette for different moods
 const COLORS = {
