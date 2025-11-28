@@ -17,14 +17,18 @@ export default function CursorTrail() {
         setMounted(true);
     }, []);
 
+    // Store MotionValues in refs to avoid dependency array issues
+    const mouseXRef = useRef(mouseX);
+    const mouseYRef = useRef(mouseY);
+
     useEffect(() => {
         if (!mounted) return;
 
         let timeoutId: NodeJS.Timeout;
 
         const handleMouseMove = (e: MouseEvent) => {
-            mouseX.set(e.clientX - 10);
-            mouseY.set(e.clientY - 10);
+            mouseXRef.current.set(e.clientX - 10);
+            mouseYRef.current.set(e.clientY - 10);
             isMovingRef.current = true;
 
             clearTimeout(timeoutId);
@@ -39,7 +43,7 @@ export default function CursorTrail() {
             window.removeEventListener("mousemove", handleMouseMove);
             clearTimeout(timeoutId);
         };
-    }, [mounted, mouseX, mouseY]);
+    }, [mounted]); // Removed MotionValues from dependencies - they are stable refs
 
     if (!mounted) return null;
 
