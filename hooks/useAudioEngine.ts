@@ -129,6 +129,7 @@ export function useAudioEngine(): AudioEngine {
     const wasPlayingBeforeHiddenRef = useRef<boolean>(false); // Track if we were playing before page hide
     const wasPlayingBeforeInterruptionRef = useRef<boolean>(false); // Track if we were playing before audio interruption (Android)
     const platformInfoRef = useRef(getPlatformInfo()); // Cache platform info
+    const stateChangeHandlerRef = useRef<(() => void) | null>(null); // Store statechange handler for cleanup
     const stemGainsRef = useRef<StemGains>({
         DRUMS: null,
         BASS: null,
@@ -260,7 +261,8 @@ export function useAudioEngine(): AudioEngine {
             clearError();
 
             // iOS/Safari & Android: Handle AudioContext state changes (interrupted/suspended)
-            ctx.addEventListener("statechange", () => {
+            // Store handler in ref for proper cleanup on unmount
+            const handleStateChange = () => {
                 const { isAndroid, isIOS } = platformInfoRef.current;
                 console.log("[AudioEngine] AudioContext state changed to:", ctx.state, "Platform:", isAndroid ? "Android" : isIOS ? "iOS" : "Other");
 
@@ -284,7 +286,9 @@ export function useAudioEngine(): AudioEngine {
                         wasPlayingBeforeInterruptionRef.current = false;
                     }
                 }
-            });
+            };
+            stateChangeHandlerRef.current = handleStateChange;
+            ctx.addEventListener("statechange", handleStateChange);
         } catch (e) {
             handleError({
                 type: "init",
@@ -938,6 +942,28 @@ export function useAudioEngine(): AudioEngine {
                 silentAudioRef.current.pause();
                 silentAudioRef.current.src = "";
                 silentAudioRef.current = null;
+            }
+        };
+    }, []);
+
+    // Cleanup AudioContext and statechange listener on unmount
+    useEffect(() => {
+        return () => {
+            const ctx = audioContextRef.current;
+            const handler = stateChangeHandlerRef.current;
+
+            // Remove statechange listener before closing
+            if (ctx && handler) {
+                ctx.removeEventListener("statechange", handler);
+                stateChangeHandlerRef.current = null;
+            }
+
+            // Close AudioContext to release resources
+            if (ctx && ctx.state !== "closed") {
+                ctx.close().catch((e) => {
+                    console.warn("[AudioEngine] Failed to close AudioContext:", e);
+                });
+                audioContextRef.current = null;
             }
         };
     }, []);

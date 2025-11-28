@@ -77,6 +77,11 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
         const color = currentTrack.color;
         const visualizer = currentTrack.visualizer;
 
+        // Pre-allocate audio data array to avoid creating new Uint8Array on every frame
+        // This prevents garbage collection pressure at 60fps
+        const initialBufferLength = analyserRef.current?.frequencyBinCount || 128;
+        let dataArray = new Uint8Array(initialBufferLength) as Uint8Array<ArrayBuffer>;
+
         // Persistent state for visualizers
         const matrixDrops: number[] = [];
         const fallingParticles: { x: number; y: number; speed: number; size: number }[] = [];
@@ -122,16 +127,19 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
         const render = () => {
             time += 0.016;
 
-            // Get audio data
-            let dataArray: Uint8Array<ArrayBuffer>;
+            // Get audio data - reuse pre-allocated array to avoid GC pressure
             let bufferLength = 128;
 
             if (analyserRef.current) {
                 bufferLength = analyserRef.current.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
+                // Reallocate only if buffer size changed (rare)
+                if (dataArray.length !== bufferLength) {
+                    dataArray = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
+                }
                 analyserRef.current.getByteFrequencyData(dataArray);
             } else {
-                dataArray = new Uint8Array(bufferLength).fill(0) as Uint8Array<ArrayBuffer>;
+                // Fill with zeros when no analyser (reuse existing array)
+                dataArray.fill(0);
             }
 
             // Calculate audio metrics

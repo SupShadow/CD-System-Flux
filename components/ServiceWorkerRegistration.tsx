@@ -5,8 +5,8 @@ import { useEffect } from "react";
 export default function ServiceWorkerRegistration() {
     useEffect(() => {
         if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-            // Register service worker after page load
-            window.addEventListener("load", () => {
+            // Handler for registering service worker
+            const handleLoad = () => {
                 navigator.serviceWorker
                     .register("/sw.js")
                     .then((registration) => {
@@ -28,7 +28,20 @@ export default function ServiceWorkerRegistration() {
                     .catch((error) => {
                         console.error("[PWA] Service Worker registration failed:", error);
                     });
-            });
+            };
+
+            // Register service worker after page load
+            // Check if page already loaded (for hot reloads)
+            if (document.readyState === "complete") {
+                handleLoad();
+            } else {
+                window.addEventListener("load", handleLoad);
+            }
+
+            // Cleanup: remove event listener on unmount
+            return () => {
+                window.removeEventListener("load", handleLoad);
+            };
         }
     }, []);
 
