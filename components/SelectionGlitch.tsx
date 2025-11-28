@@ -27,6 +27,7 @@ export default function SelectionGlitch() {
 
     useEffect(() => {
         let selectionTimeout: NodeJS.Timeout;
+        let mouseUpTimeout: NodeJS.Timeout;
 
         const handleSelectionChange = () => {
             const selection = window.getSelection();
@@ -59,7 +60,9 @@ export default function SelectionGlitch() {
             const selection = window.getSelection();
             if (selection && selection.toString().length > 0) {
                 setGlitchKey(prev => prev + 1);
-                setTimeout(() => setIsSelecting(false), 200);
+                // Clear any existing mouseUp timeout to prevent stacking
+                clearTimeout(mouseUpTimeout);
+                mouseUpTimeout = setTimeout(() => setIsSelecting(false), 200);
             }
         };
 
@@ -70,6 +73,7 @@ export default function SelectionGlitch() {
             document.removeEventListener("selectionchange", handleSelectionChange);
             document.removeEventListener("mouseup", handleMouseUp);
             clearTimeout(selectionTimeout);
+            clearTimeout(mouseUpTimeout);
         };
     }, []);
 
