@@ -27,10 +27,8 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
     // Use a ref to store handlers to avoid re-registering event listener on every render
     const handlersRef = useRef(handlers);
 
-    // Keep handlers ref up to date
-    useEffect(() => {
-        handlersRef.current = handlers;
-    });
+    // Keep handlers ref up to date synchronously (more efficient than useEffect)
+    handlersRef.current = handlers;
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

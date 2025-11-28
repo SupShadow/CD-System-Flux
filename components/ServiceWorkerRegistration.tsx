@@ -22,19 +22,27 @@ export default function ServiceWorkerRegistration() {
 
                         // Define updatefound handler
                         const handleUpdateFound = () => {
-                            const newWorker = registration.installing;
-                            if (newWorker) {
-                                newWorkerRef.current = newWorker;
+                            try {
+                                const newWorker = registration.installing;
+                                if (newWorker) {
+                                    newWorkerRef.current = newWorker;
 
-                                // Define statechange handler
-                                const handleStateChange = () => {
-                                    if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                                        // New content available
-                                        console.log("[PWA] New content available, refresh to update");
-                                    }
-                                };
-                                stateChangeHandlerRef.current = handleStateChange;
-                                newWorker.addEventListener("statechange", handleStateChange);
+                                    // Define statechange handler
+                                    const handleStateChange = () => {
+                                        try {
+                                            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                                                // New content available
+                                                console.log("[PWA] New content available, refresh to update");
+                                            }
+                                        } catch (error) {
+                                            console.warn("[PWA] Error in statechange handler:", error);
+                                        }
+                                    };
+                                    stateChangeHandlerRef.current = handleStateChange;
+                                    newWorker.addEventListener("statechange", handleStateChange);
+                                }
+                            } catch (error) {
+                                console.warn("[PWA] Error in updatefound handler:", error);
                             }
                         };
                         updateFoundHandlerRef.current = handleUpdateFound;
