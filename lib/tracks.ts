@@ -149,7 +149,8 @@ export function getCountdownTrack(): { track: Track; isReleased: boolean } | nul
  * Handles the naming convention: `/artwork/{Title} Artwork.jpg`
  */
 export function getArtworkPath(track: Track): string {
-    // Remove special characters and format title for artwork filename
-    const cleanTitle = track.title.replace(/[^a-zA-Z0-9 ]/g, '').replace(/ /g, ' ');
+    // Remove special characters from title for artwork filename
+    // Keep alphanumeric characters and spaces only
+    const cleanTitle = track.title.replace(/[^a-zA-Z0-9 ]/g, '');
     return `/artwork/${cleanTitle} Artwork.jpg`;
 }

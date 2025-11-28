@@ -130,6 +130,7 @@ export function useAudioEngine(): AudioEngine {
     const wasPlayingBeforeInterruptionRef = useRef<boolean>(false); // Track if we were playing before audio interruption (Android)
     const platformInfoRef = useRef(getPlatformInfo()); // Cache platform info
     const stateChangeHandlerRef = useRef<(() => void) | null>(null); // Store statechange handler for cleanup
+    const pauseHandlerRef = useRef<((e: Event) => void) | null>(null); // Store pause handler for proper cleanup across track changes
     const stemGainsRef = useRef<StemGains>({
         DRUMS: null,
         BASS: null,
@@ -901,6 +902,12 @@ export function useAudioEngine(): AudioEngine {
 
     // iOS/Safari: Handle audio element pause events that might be triggered by iOS
     useEffect(() => {
+        // Clean up previous handler if it exists
+        const previousAudio = audioElementRef.current;
+        if (pauseHandlerRef.current && previousAudio) {
+            previousAudio.removeEventListener("pause", pauseHandlerRef.current);
+        }
+
         const audio = audioElementRef.current;
         if (!audio) return;
 
@@ -910,6 +917,9 @@ export function useAudioEngine(): AudioEngine {
             if (!document.hidden && isPlaying) {
                 console.log("[AudioEngine] Unexpected pause detected, attempting to resume...");
                 const ctx = audioContextRef.current;
+                const currentAudio = audioElementRef.current; // Get fresh reference
+
+                if (!currentAudio) return;
 
                 // Try to resume after a brief delay (iOS needs this)
                 setTimeout(() => {
@@ -917,8 +927,8 @@ export function useAudioEngine(): AudioEngine {
                         ctx.resume().catch(console.warn);
                     }
                     // Ensure consistent pitch after resume
-                    audio.playbackRate = 1;
-                    audio.play().then(() => {
+                    currentAudio.playbackRate = 1;
+                    currentAudio.play().then(() => {
                         console.log("[AudioEngine] Audio resumed after unexpected pause");
                     }).catch((e) => {
                         console.warn("[AudioEngine] Could not resume after pause:", e);
@@ -928,12 +938,15 @@ export function useAudioEngine(): AudioEngine {
             }
         };
 
+        pauseHandlerRef.current = handlePause;
         audio.addEventListener("pause", handlePause);
 
         return () => {
-            audio.removeEventListener("pause", handlePause);
+            if (pauseHandlerRef.current) {
+                audio.removeEventListener("pause", pauseHandlerRef.current);
+            }
         };
-    }, [isPlaying]);
+    }, [isPlaying, currentTrackIndex]); // Add currentTrackIndex to re-register when track changes
 
     // Cleanup silent audio on unmount
     useEffect(() => {

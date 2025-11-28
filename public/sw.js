@@ -1,13 +1,19 @@
 const CACHE_NAME = 'system-flux-v1';
-const OFFLINE_URL = '/offline.html';
+
+// Detect base path from the service worker's location
+// Service worker is at /CD-System-Flux/sw.js in production, /sw.js in development
+const SW_PATH = self.location.pathname;
+const BASE_PATH = SW_PATH.replace('/sw.js', '') || '';
+
+const OFFLINE_URL = `${BASE_PATH}/offline.html`;
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
-  '/',
-  '/offline.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/offline.html`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/icons/icon-192x192.png`,
+  `${BASE_PATH}/icons/icon-512x512.png`,
 ];
 
 // Install event - precache essential assets
@@ -47,7 +53,8 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) return;
 
   // For music files - cache first (they're large and don't change)
-  if (url.pathname.startsWith('/music/')) {
+  // Check both with and without base path for compatibility
+  if (url.pathname.startsWith(`${BASE_PATH}/music/`) || url.pathname.startsWith('/music/')) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) {
