@@ -276,6 +276,8 @@ export function useAudioEngine(): AudioEngine {
                     const audio = audioElementRef.current;
                     if (audio && audio.paused && wasPlayingBeforeInterruptionRef.current) {
                         console.log("[AudioEngine] Android: AudioContext running, resuming playback");
+                        // Ensure consistent pitch after AudioContext resume
+                        audio.playbackRate = 1;
                         audio.play().catch((e) => {
                             console.warn("[AudioEngine] Android: Failed to resume after interruption:", e);
                         });
@@ -418,6 +420,9 @@ export function useAudioEngine(): AudioEngine {
             const audio = new Audio();
             audio.crossOrigin = "anonymous";
             audio.preload = "auto";
+            // Ensure consistent pitch - prevent browser from altering playbackRate
+            audio.playbackRate = 1;
+            audio.defaultPlaybackRate = 1;
             // iOS Safari: Required for background playback
             audio.setAttribute("playsinline", "true");
             audio.setAttribute("webkit-playsinline", "true");
@@ -554,6 +559,8 @@ export function useAudioEngine(): AudioEngine {
             if (!audio || !audio.src || audio.src === window.location.href) {
                 playTrack(currentTrackIndex);
             } else {
+                // Ensure consistent pitch before resuming
+                audio.playbackRate = 1;
                 audio
                     .play()
                     .then(() => {
@@ -864,6 +871,8 @@ export function useAudioEngine(): AudioEngine {
 
                     // Resume audio playback if it was paused by iOS
                     if (audio.paused) {
+                        // Ensure consistent pitch after resume
+                        audio.playbackRate = 1;
                         audio.play().then(() => {
                             console.log("[AudioEngine] Audio playback resumed after visibility change");
                             setIsPlaying(true);
@@ -871,6 +880,9 @@ export function useAudioEngine(): AudioEngine {
                         }).catch((e) => {
                             console.warn("[AudioEngine] Failed to resume audio playback:", e);
                         });
+                    } else {
+                        // Even if not paused, ensure playbackRate is correct
+                        audio.playbackRate = 1;
                     }
                 }
             }
@@ -900,6 +912,8 @@ export function useAudioEngine(): AudioEngine {
                     if (ctx && (ctx.state === "suspended" || (ctx.state as string) === "interrupted")) {
                         ctx.resume().catch(console.warn);
                     }
+                    // Ensure consistent pitch after resume
+                    audio.playbackRate = 1;
                     audio.play().then(() => {
                         console.log("[AudioEngine] Audio resumed after unexpected pause");
                     }).catch((e) => {
@@ -952,6 +966,8 @@ export function useAudioEngine(): AudioEngine {
 
                 // Small delay to let Android settle
                 setTimeout(() => {
+                    // Ensure consistent pitch after resume
+                    audio.playbackRate = 1;
                     if (ctx.state === "suspended") {
                         ctx.resume().then(() => {
                             if (audio.paused) {
@@ -988,6 +1004,8 @@ export function useAudioEngine(): AudioEngine {
             // Reconnect audio if it was playing
             if (audio && audio.paused && wasPlayingBeforeInterruptionRef.current) {
                 setTimeout(() => {
+                    // Ensure consistent pitch after device change
+                    audio.playbackRate = 1;
                     audio.play().catch(console.warn);
                 }, 500);
             }
@@ -1049,6 +1067,8 @@ export function useAudioEngine(): AudioEngine {
 
                 // Then resume audio with a delay
                 setTimeout(() => {
+                    // Ensure consistent pitch after page show
+                    audio.playbackRate = 1;
                     if (audio.paused) {
                         audio.play().then(() => {
                             setIsPlaying(true);
