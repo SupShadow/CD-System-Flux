@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, BarChart2, Disc3, Clock, Loader2 } from "lucide-react";
+import { X, BarChart2, Clock, Loader2 } from "lucide-react";
 import { cn, assetPath } from "@/lib/utils";
 import { Track, getArtworkPath } from "@/lib/tracks";
 import Image from "next/image";
