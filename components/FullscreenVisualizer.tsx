@@ -30,18 +30,24 @@ function rgba(hex: string, alpha: number): string {
 
 // Wrapper component - only mounts inner component when open
 export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisualizerProps) {
+    // Use ref to store onClose to avoid re-registering event listener when onClose changes
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    });
+
     // Handle escape key at wrapper level (no other hooks here)
     useEffect(() => {
         if (!isOpen) return;
 
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
-                onClose();
+                onCloseRef.current();
             }
         };
         window.addEventListener("keydown", handleEscape);
         return () => window.removeEventListener("keydown", handleEscape);
-    }, [isOpen, onClose]);
+    }, [isOpen]); // Removed onClose from dependencies - using ref instead
 
     // Only render inner component when open to avoid hook count issues
     if (!isOpen) return null;

@@ -188,6 +188,16 @@ export default function TransmitButton({
     const [showQR, setShowQR] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const buttonRef = useRef<HTMLDivElement>(null);
+    // Track timeout IDs for cleanup
+    const timeoutIdsRef = useRef<Set<NodeJS.Timeout>>(new Set());
+
+    // Cleanup timeouts on unmount
+    useEffect(() => {
+        return () => {
+            timeoutIdsRef.current.forEach(id => clearTimeout(id));
+            timeoutIdsRef.current.clear();
+        };
+    }, []);
 
     const shareTargets: ShareTarget[] = [
         {
@@ -240,7 +250,11 @@ export default function TransmitButton({
             action: async (data) => {
                 await navigator.clipboard.writeText(`${data.text}\n${data.url}`);
                 setCopiedId("copy");
-                setTimeout(() => setCopiedId(null), 2000);
+                const copyTimeout = setTimeout(() => {
+                    timeoutIdsRef.current.delete(copyTimeout);
+                    setCopiedId(null);
+                }, 2000);
+                timeoutIdsRef.current.add(copyTimeout);
             },
         },
         {
@@ -264,20 +278,28 @@ export default function TransmitButton({
         try {
             await target.action(shareData);
 
-            // Show success state
-            setTimeout(() => {
+            // Show success state - track timeout IDs for cleanup
+            const timeout1 = setTimeout(() => {
+                timeoutIdsRef.current.delete(timeout1);
                 setIsTransmitting(false);
                 setTransmitSuccess(true);
-                setTimeout(() => {
+                const timeout2 = setTimeout(() => {
+                    timeoutIdsRef.current.delete(timeout2);
                     setTransmitSuccess(false);
                     setIsOpen(false);
                 }, 1500);
+                timeoutIdsRef.current.add(timeout2);
             }, 500);
+            timeoutIdsRef.current.add(timeout1);
         } catch (error) {
             setIsTransmitting(false);
         }
 
-        setTimeout(() => setShowParticles(false), 600);
+        const particleTimeout = setTimeout(() => {
+            timeoutIdsRef.current.delete(particleTimeout);
+            setShowParticles(false);
+        }, 600);
+        timeoutIdsRef.current.add(particleTimeout);
     }, [shareData]);
 
     // Native share for mobile
@@ -289,7 +311,11 @@ export default function TransmitButton({
             try {
                 await navigator.share(shareData);
                 setTransmitSuccess(true);
-                setTimeout(() => setTransmitSuccess(false), 2000);
+                const successTimeout = setTimeout(() => {
+                    timeoutIdsRef.current.delete(successTimeout);
+                    setTransmitSuccess(false);
+                }, 2000);
+                timeoutIdsRef.current.add(successTimeout);
             } catch (err) {
                 if ((err as Error).name !== "AbortError") {
                     console.error("Share failed:", err);
@@ -297,7 +323,11 @@ export default function TransmitButton({
             }
 
             setIsTransmitting(false);
-            setTimeout(() => setShowParticles(false), 600);
+            const particleTimeout = setTimeout(() => {
+                timeoutIdsRef.current.delete(particleTimeout);
+                setShowParticles(false);
+            }, 600);
+            timeoutIdsRef.current.add(particleTimeout);
         } else {
             setIsOpen(true);
         }

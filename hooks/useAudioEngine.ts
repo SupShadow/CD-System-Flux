@@ -131,6 +131,22 @@ export function useAudioEngine(): AudioEngine {
     const platformInfoRef = useRef(getPlatformInfo()); // Cache platform info
     const stateChangeHandlerRef = useRef<(() => void) | null>(null); // Store statechange handler for cleanup
     const pauseHandlerRef = useRef<((e: Event) => void) | null>(null); // Store pause handler for proper cleanup across track changes
+    // Store audio element event listeners for cleanup
+    const audioListenersRef = useRef<{
+        error: (() => void) | null;
+        stalled: (() => void) | null;
+        loadedmetadata: (() => void) | null;
+        timeupdate: (() => void) | null;
+        durationchange: (() => void) | null;
+        ended: (() => void) | null;
+    }>({
+        error: null,
+        stalled: null,
+        loadedmetadata: null,
+        timeupdate: null,
+        durationchange: null,
+        ended: null,
+    });
     const stemGainsRef = useRef<StemGains>({
         DRUMS: null,
         BASS: null,
@@ -393,11 +409,31 @@ export function useAudioEngine(): AudioEngine {
             const ctx = audioContextRef.current;
             if (!ctx) return;
 
-            // Cleanup previous audio
-            if (audioElementRef.current) {
-                audioElementRef.current.pause();
-                audioElementRef.current.src = "";
-                audioElementRef.current.removeAttribute("src");
+            // Cleanup previous audio element and its event listeners
+            const previousAudio = audioElementRef.current;
+            if (previousAudio) {
+                // Remove all event listeners from previous audio element
+                const listeners = audioListenersRef.current;
+                if (listeners.error) previousAudio.removeEventListener("error", listeners.error);
+                if (listeners.stalled) previousAudio.removeEventListener("stalled", listeners.stalled);
+                if (listeners.loadedmetadata) previousAudio.removeEventListener("loadedmetadata", listeners.loadedmetadata);
+                if (listeners.timeupdate) previousAudio.removeEventListener("timeupdate", listeners.timeupdate);
+                if (listeners.durationchange) previousAudio.removeEventListener("durationchange", listeners.durationchange);
+                if (listeners.ended) previousAudio.removeEventListener("ended", listeners.ended);
+
+                // Reset listener refs
+                audioListenersRef.current = {
+                    error: null,
+                    stalled: null,
+                    loadedmetadata: null,
+                    timeupdate: null,
+                    durationchange: null,
+                    ended: null,
+                };
+
+                previousAudio.pause();
+                previousAudio.src = "";
+                previousAudio.removeAttribute("src");
             }
 
             // Disconnect previous source
@@ -432,8 +468,8 @@ export function useAudioEngine(): AudioEngine {
             audio.setAttribute("playsinline", "true");
             audio.setAttribute("webkit-playsinline", "true");
 
-            // Error handlers for audio element
-            audio.addEventListener("error", () => {
+            // Error handlers for audio element - store references for cleanup
+            const handleAudioError = () => {
                 const mediaError = audio.error;
                 let message = "Failed to load audio";
 
@@ -460,34 +496,52 @@ export function useAudioEngine(): AudioEngine {
                     trackIndex: index,
                 });
                 setIsPlaying(false);
-            });
+            };
 
-            audio.addEventListener("stalled", () => {
+            const handleStalled = () => {
                 handleError({
                     type: "network",
                     message: `Buffering stalled: ${track.title}`,
                     trackIndex: index,
                 });
-            });
+            };
 
             // Duration and time tracking
-            audio.addEventListener("loadedmetadata", () => {
+            const handleLoadedMetadata = () => {
                 setDuration(audio.duration || 0);
-            });
+            };
 
-            audio.addEventListener("timeupdate", () => {
+            const handleTimeUpdate = () => {
                 setCurrentTime(audio.currentTime || 0);
-            });
+            };
 
-            audio.addEventListener("durationchange", () => {
+            const handleDurationChange = () => {
                 setDuration(audio.duration || 0);
-            });
+            };
 
             // Auto-play next track
-            audio.addEventListener("ended", () => {
+            const handleEnded = () => {
                 const nextIndex = (index + 1) % availableTracks.length;
                 playTrack(nextIndex);
-            });
+            };
+
+            // Store listener references for cleanup
+            audioListenersRef.current = {
+                error: handleAudioError,
+                stalled: handleStalled,
+                loadedmetadata: handleLoadedMetadata,
+                timeupdate: handleTimeUpdate,
+                durationchange: handleDurationChange,
+                ended: handleEnded,
+            };
+
+            // Add event listeners
+            audio.addEventListener("error", handleAudioError);
+            audio.addEventListener("stalled", handleStalled);
+            audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+            audio.addEventListener("timeupdate", handleTimeUpdate);
+            audio.addEventListener("durationchange", handleDurationChange);
+            audio.addEventListener("ended", handleEnded);
 
             // Set source after adding event listeners (with basePath for production)
             audio.src = assetPath(track.src);
@@ -901,15 +955,21 @@ export function useAudioEngine(): AudioEngine {
     }, [isPlaying, startSilentKeepalive]);
 
     // iOS/Safari: Handle audio element pause events that might be triggered by iOS
+    // Using a ref to track the current audio element to avoid stale references
+    const pauseListenerAudioRef = useRef<HTMLAudioElement | null>(null);
+
     useEffect(() => {
-        // Clean up previous handler if it exists
-        const previousAudio = audioElementRef.current;
-        if (pauseHandlerRef.current && previousAudio) {
-            previousAudio.removeEventListener("pause", pauseHandlerRef.current);
+        // Clean up previous handler from the previously tracked audio element
+        if (pauseHandlerRef.current && pauseListenerAudioRef.current) {
+            pauseListenerAudioRef.current.removeEventListener("pause", pauseHandlerRef.current);
+            pauseHandlerRef.current = null;
         }
 
         const audio = audioElementRef.current;
         if (!audio) return;
+
+        // Track the current audio element for cleanup
+        pauseListenerAudioRef.current = audio;
 
         const handlePause = () => {
             // Only update state if this wasn't a user-initiated pause
@@ -942,11 +1002,12 @@ export function useAudioEngine(): AudioEngine {
         audio.addEventListener("pause", handlePause);
 
         return () => {
-            if (pauseHandlerRef.current) {
-                audio.removeEventListener("pause", pauseHandlerRef.current);
+            if (pauseHandlerRef.current && pauseListenerAudioRef.current) {
+                pauseListenerAudioRef.current.removeEventListener("pause", pauseHandlerRef.current);
+                pauseHandlerRef.current = null;
             }
         };
-    }, [isPlaying, currentTrackIndex]); // Add currentTrackIndex to re-register when track changes
+    }, [isPlaying, currentTrackIndex]); // Re-register when track changes
 
     // Cleanup silent audio on unmount
     useEffect(() => {
@@ -959,9 +1020,21 @@ export function useAudioEngine(): AudioEngine {
         };
     }, []);
 
-    // Cleanup AudioContext and statechange listener on unmount
+    // Cleanup AudioContext, statechange listener, and audio element listeners on unmount
     useEffect(() => {
         return () => {
+            // Cleanup audio element event listeners
+            const audio = audioElementRef.current;
+            const listeners = audioListenersRef.current;
+            if (audio) {
+                if (listeners.error) audio.removeEventListener("error", listeners.error);
+                if (listeners.stalled) audio.removeEventListener("stalled", listeners.stalled);
+                if (listeners.loadedmetadata) audio.removeEventListener("loadedmetadata", listeners.loadedmetadata);
+                if (listeners.timeupdate) audio.removeEventListener("timeupdate", listeners.timeupdate);
+                if (listeners.durationchange) audio.removeEventListener("durationchange", listeners.durationchange);
+                if (listeners.ended) audio.removeEventListener("ended", listeners.ended);
+            }
+
             const ctx = audioContextRef.current;
             const handler = stateChangeHandlerRef.current;
 
