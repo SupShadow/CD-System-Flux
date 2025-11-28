@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const KONAMI_CODE = [
@@ -19,6 +19,7 @@ const KONAMI_CODE = [
 export default function KonamiCode() {
     const [, setInput] = useState<string[]>([]);
     const [unlocked, setUnlocked] = useState(false);
+    const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,7 +30,11 @@ export default function KonamiCode() {
 
                 if (JSON.stringify(newInput) === JSON.stringify(KONAMI_CODE)) {
                     setUnlocked(true);
-                    setTimeout(() => setUnlocked(false), 5000); // Reset after 5s
+                    // Clear any existing timeout before setting a new one
+                    if (resetTimeoutRef.current) {
+                        clearTimeout(resetTimeoutRef.current);
+                    }
+                    resetTimeoutRef.current = setTimeout(() => setUnlocked(false), 5000); // Reset after 5s
                     return [];
                 }
 
@@ -38,7 +43,13 @@ export default function KonamiCode() {
         };
 
         window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            // Cleanup timeout on unmount
+            if (resetTimeoutRef.current) {
+                clearTimeout(resetTimeoutRef.current);
+            }
+        };
     }, []);
 
     return (

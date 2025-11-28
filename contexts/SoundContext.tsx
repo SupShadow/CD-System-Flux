@@ -36,6 +36,11 @@ export function SoundProvider({ children }: { children: ReactNode }) {
         return () => {
             document.removeEventListener("click", initAudio);
             document.removeEventListener("keydown", initAudio);
+            // Close AudioContext to prevent memory leak
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+                audioContextRef.current = null;
+            }
         };
     }, []);
 

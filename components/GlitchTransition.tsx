@@ -33,9 +33,12 @@ export default function GlitchTransition() {
             setShowGlitch(true);
 
             // Glitch duration
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 setShowGlitch(false);
             }, 400);
+
+            // Cleanup timeout on unmount or before next effect run
+            return () => clearTimeout(timeoutId);
         }
     }, [currentTrackIndex, mounted]);
 

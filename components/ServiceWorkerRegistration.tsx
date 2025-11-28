@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
+import { getBasePath } from "@/lib/utils";
 
 export default function ServiceWorkerRegistration() {
     useEffect(() => {
         if (typeof window !== "undefined" && "serviceWorker" in navigator) {
             // Handler for registering service worker
+            const swPath = `${getBasePath()}/sw.js`;
             const handleLoad = () => {
                 navigator.serviceWorker
-                    .register("/sw.js")
+                    .register(swPath)
                     .then((registration) => {
                         console.log("[PWA] Service Worker registered:", registration.scope);
 
