@@ -131,6 +131,8 @@ export function useAudioEngine(): AudioEngine {
     const platformInfoRef = useRef(getPlatformInfo()); // Cache platform info
     const stateChangeHandlerRef = useRef<(() => void) | null>(null); // Store statechange handler for cleanup
     const pauseHandlerRef = useRef<((e: Event) => void) | null>(null); // Store pause handler for proper cleanup across track changes
+    const isMountedRef = useRef<boolean>(true); // Track if component is mounted for safe state updates
+    const playTrackLockRef = useRef<boolean>(false); // Lock to prevent race conditions in playTrack
     // Store audio element event listeners for cleanup
     const audioListenersRef = useRef<{
         error: (() => void) | null;
@@ -404,10 +406,20 @@ export function useAudioEngine(): AudioEngine {
     // Play a specific track
     const playTrack = useCallback(
         (index: number) => {
+            // Prevent race conditions from rapid playTrack calls
+            if (playTrackLockRef.current) {
+                console.log("[AudioEngine] playTrack called while another playTrack is in progress, skipping");
+                return;
+            }
+            playTrackLockRef.current = true;
+
             if (!audioContextRef.current) initAudio();
 
             const ctx = audioContextRef.current;
-            if (!ctx) return;
+            if (!ctx) {
+                playTrackLockRef.current = false;
+                return;
+            }
 
             // Cleanup previous audio element and its event listeners
             const previousAudio = audioElementRef.current;
@@ -446,7 +458,10 @@ export function useAudioEngine(): AudioEngine {
             }
 
             const track = availableTracks[index];
-            if (!track) return;
+            if (!track) {
+                playTrackLockRef.current = false;
+                return;
+            }
 
             // Apply per-track gain (volume normalization)
             if (trackGainRef.current) {
@@ -556,11 +571,15 @@ export function useAudioEngine(): AudioEngine {
                 audio
                     .play()
                     .then(() => {
+                        // Check if component is still mounted before updating state
+                        if (!isMountedRef.current) return;
                         clearError();
                         // Start silent keepalive for iOS background playback
                         startSilentKeepalive();
                     })
                     .catch((e) => {
+                        // Check if component is still mounted before updating state
+                        if (!isMountedRef.current) return;
                         // Handle autoplay restrictions
                         if (e.name === "NotAllowedError") {
                             handleError({
@@ -577,6 +596,10 @@ export function useAudioEngine(): AudioEngine {
                         }
                         setIsPlaying(false);
                         stopSilentKeepalive();
+                    })
+                    .finally(() => {
+                        // Release lock after play attempt completes
+                        playTrackLockRef.current = false;
                     });
 
                 setCurrentTrackIndex(index);
@@ -584,6 +607,7 @@ export function useAudioEngine(): AudioEngine {
 
                 if (ctx.state === "suspended") {
                     ctx.resume().catch((e) => {
+                        if (!isMountedRef.current) return;
                         handleError({
                             type: "playback",
                             message: `Failed to resume audio context: ${e.message}`,
@@ -597,6 +621,7 @@ export function useAudioEngine(): AudioEngine {
                     trackIndex: index,
                 });
                 setIsPlaying(false);
+                playTrackLockRef.current = false;
             }
         },
         [initAudio, connectSourceToStems, handleError, clearError, startSilentKeepalive, stopSilentKeepalive]
@@ -933,6 +958,8 @@ export function useAudioEngine(): AudioEngine {
                         // Ensure consistent pitch after resume
                         audio.playbackRate = 1;
                         audio.play().then(() => {
+                            // Check if component is still mounted before updating state
+                            if (!isMountedRef.current) return;
                             console.log("[AudioEngine] Audio playback resumed after visibility change");
                             setIsPlaying(true);
                             startSilentKeepalive();
@@ -1022,7 +1049,13 @@ export function useAudioEngine(): AudioEngine {
 
     // Cleanup AudioContext, statechange listener, and audio element listeners on unmount
     useEffect(() => {
+        // Mark component as mounted
+        isMountedRef.current = true;
+
         return () => {
+            // Mark component as unmounted to prevent state updates in async callbacks
+            isMountedRef.current = false;
+
             // Cleanup audio element event listeners
             const audio = audioElementRef.current;
             const listeners = audioListenersRef.current;
@@ -1179,10 +1212,14 @@ export function useAudioEngine(): AudioEngine {
 
                 // Then resume audio with a delay
                 setTimeout(() => {
+                    // Check if component is still mounted before updating state
+                    if (!isMountedRef.current) return;
                     // Ensure consistent pitch after page show
                     audio.playbackRate = 1;
                     if (audio.paused) {
                         audio.play().then(() => {
+                            // Check if component is still mounted before updating state
+                            if (!isMountedRef.current) return;
                             setIsPlaying(true);
                             startSilentKeepalive();
                         }).catch((e) => {

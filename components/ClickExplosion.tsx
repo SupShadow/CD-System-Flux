@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePerformanceOptimizations, useHapticFeedback } from "@/hooks";
 
+// Track explosion cleanup timeouts for proper cleanup on unmount
+type ExplosionTimeouts = Map<number, NodeJS.Timeout>;
+
 interface Particle {
     id: number;
     x: number;
@@ -44,6 +47,8 @@ export default function ClickExplosion() {
     const haptic = useHapticFeedback();
     // Track if we've done the initial "warm-up" animation
     const warmupDoneRef = useRef(false);
+    // Track explosion cleanup timeouts for proper cleanup on unmount
+    const explosionTimeoutsRef = useRef<ExplosionTimeouts>(new Map());
 
     // Determine if we're in a low-performance mode
     const isLowPerformance = perf.level === "low" || perf.level === "ultra-low" || perf.level === "medium";
@@ -106,9 +111,14 @@ export default function ClickExplosion() {
         setExplosions(prev => [...prev, explosion]);
 
         // Remove explosion after animation (shorter on low performance)
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             setExplosions(prev => prev.filter(e => e.id !== explosion.id));
+            // Clean up the timeout reference
+            explosionTimeoutsRef.current.delete(explosion.id);
         }, isLowPerformance ? 400 : 600);
+
+        // Track the timeout for cleanup on unmount
+        explosionTimeoutsRef.current.set(explosion.id, timeoutId);
     }, [perf.level, isLowPerformance, haptic]);
 
     useEffect(() => {
@@ -124,6 +134,18 @@ export default function ClickExplosion() {
             document.removeEventListener("click", handleClick);
         };
     }, [mounted, createExplosion]);
+
+    // Cleanup all explosion timeouts on unmount
+    useEffect(() => {
+        const timeoutsRef = explosionTimeoutsRef;
+        return () => {
+            // Clear all pending explosion timeouts
+            timeoutsRef.current.forEach((timeoutId) => {
+                clearTimeout(timeoutId);
+            });
+            timeoutsRef.current.clear();
+        };
+    }, []);
 
     if (!mounted) return null;
 

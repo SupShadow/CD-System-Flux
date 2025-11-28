@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -14,17 +14,22 @@ export default function Terminal() {
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Memoized toggle function to avoid stale closures
+    const toggleTerminal = useCallback(() => {
+        setIsOpen((prev) => !prev);
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "`" || e.key === "~") {
                 e.preventDefault();
-                setIsOpen((prev) => !prev);
+                toggleTerminal();
             }
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
+    }, [toggleTerminal]);
 
     useEffect(() => {
         if (isOpen && inputRef.current) {
