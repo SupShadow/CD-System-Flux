@@ -51,7 +51,9 @@ export function SoundProvider({ children }: { children: ReactNode }) {
 
         // Resume context if suspended (browser autoplay policy)
         if (ctx.state === "suspended") {
-            ctx.resume();
+            ctx.resume().catch((e) => {
+                console.warn("[SoundContext] Failed to resume AudioContext:", e);
+            });
         }
 
         const oscillator = ctx.createOscillator();
