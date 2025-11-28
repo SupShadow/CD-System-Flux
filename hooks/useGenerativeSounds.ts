@@ -191,7 +191,9 @@ export function useGenerativeSounds() {
         try {
             const ctx = initContext();
             if (ctx.state === "suspended") {
-                ctx.resume();
+                ctx.resume().catch((e) => {
+                    console.warn("[GenerativeSounds] Failed to resume AudioContext:", e);
+                });
             }
 
             const config = typeof presetOrConfig === "string"
@@ -246,7 +248,9 @@ export function useGenerativeSounds() {
         try {
             const ctx = initContext();
             if (ctx.state === "suspended") {
-                ctx.resume();
+                ctx.resume().catch((e) => {
+                    console.warn("[GenerativeSounds] Failed to resume AudioContext:", e);
+                });
             }
 
             const now = ctx.currentTime;
@@ -301,22 +305,52 @@ export function useGenerativeSounds() {
 
     // Secret unlock sound
     const playSecretUnlock = useCallback(() => {
-        // Mysterious descending pattern
-        const ctx = initContext();
-        if (!ctx) return;
+        // Mysterious descending pattern using Web Audio API native scheduling
+        if (!enabledRef.current) return;
 
-        const frequencies = [880, 660, 440, 330];
-        frequencies.forEach((freq, i) => {
-            setTimeout(() => playSound({
-                frequency: freq,
-                duration: 0.15,
-                type: "triangle",
-                volume: 0.06,
-                attack: 0.02,
-                decay: 0.12,
-            }), i * 100);
-        });
-    }, [initContext, playSound]);
+        try {
+            const ctx = initContext();
+            if (!ctx) return;
+
+            if (ctx.state === "suspended") {
+                ctx.resume().catch((e) => {
+                    console.warn("[GenerativeSounds] Failed to resume AudioContext:", e);
+                });
+            }
+
+            const frequencies = [880, 660, 440, 330];
+            const now = ctx.currentTime;
+
+            frequencies.forEach((freq, i) => {
+                const startTime = now + i * 0.1; // 100ms intervals
+                const duration = 0.15;
+                const volume = 0.06;
+                const attack = 0.02;
+
+                const oscillator = ctx.createOscillator();
+                oscillator.type = "triangle";
+                oscillator.frequency.setValueAtTime(freq, startTime);
+
+                const gainNode = ctx.createGain();
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(volume, startTime + attack);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration + 0.1);
+
+                oscillator.onended = () => {
+                    oscillator.disconnect();
+                    gainNode.disconnect();
+                };
+            });
+        } catch (error) {
+            console.debug("[GenerativeSounds] Failed to play secret unlock:", error);
+        }
+    }, [initContext]);
 
     // Infection pulse
     const playInfectionPulse = useCallback((intensity: number) => {
@@ -333,20 +367,53 @@ export function useGenerativeSounds() {
 
     // Level up sequence
     const playLevelUp = useCallback((level: number) => {
-        const baseFreq = 220 * Math.pow(2, level / 12); // Rise with each level
-        const frequencies = [baseFreq, baseFreq * 1.25, baseFreq * 1.5, baseFreq * 2];
+        // Level up sequence using Web Audio API native scheduling
+        if (!enabledRef.current) return;
 
-        frequencies.forEach((freq, i) => {
-            setTimeout(() => playSound({
-                frequency: freq,
-                duration: 0.2,
-                type: "sine",
-                volume: 0.07,
-                attack: 0.02,
-                decay: 0.15,
-            }), i * 80);
-        });
-    }, [playSound]);
+        try {
+            const ctx = initContext();
+            if (!ctx) return;
+
+            if (ctx.state === "suspended") {
+                ctx.resume().catch((e) => {
+                    console.warn("[GenerativeSounds] Failed to resume AudioContext:", e);
+                });
+            }
+
+            const baseFreq = 220 * Math.pow(2, level / 12); // Rise with each level
+            const frequencies = [baseFreq, baseFreq * 1.25, baseFreq * 1.5, baseFreq * 2];
+            const now = ctx.currentTime;
+
+            frequencies.forEach((freq, i) => {
+                const startTime = now + i * 0.08; // 80ms intervals
+                const duration = 0.2;
+                const volume = 0.07;
+                const attack = 0.02;
+
+                const oscillator = ctx.createOscillator();
+                oscillator.type = "sine";
+                oscillator.frequency.setValueAtTime(freq, startTime);
+
+                const gainNode = ctx.createGain();
+                gainNode.gain.setValueAtTime(0, startTime);
+                gainNode.gain.linearRampToValueAtTime(volume, startTime + attack);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration + 0.1);
+
+                oscillator.onended = () => {
+                    oscillator.disconnect();
+                    gainNode.disconnect();
+                };
+            });
+        } catch (error) {
+            console.debug("[GenerativeSounds] Failed to play level up:", error);
+        }
+    }, [initContext]);
 
     // Enable/disable sounds
     const setEnabled = useCallback((enabled: boolean) => {

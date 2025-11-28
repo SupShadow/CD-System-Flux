@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rocket, AlertTriangle, CheckCircle, Calendar, Bell, BellRing, X, ChevronDown } from "lucide-react";
 import { getCountdownTrack, Track } from "@/lib/tracks";
@@ -335,6 +335,7 @@ export default function DeploymentCountdown() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [isNotifyEnabled, setIsNotifyEnabled] = useState(false);
     const [showNotifyConfirm, setShowNotifyConfirm] = useState(false);
+    const notifyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const { disableGlitch } = useAccessibility();
 
@@ -399,6 +400,15 @@ export default function DeploymentCountdown() {
         return () => clearInterval(interval);
     }, [countdownData]);
 
+    // Cleanup notification timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (notifyTimeoutRef.current) {
+                clearTimeout(notifyTimeoutRef.current);
+            }
+        };
+    }, []);
+
     // Notification request
     const handleNotifyClick = useCallback(async () => {
         if (!("Notification" in window)) {
@@ -406,16 +416,21 @@ export default function DeploymentCountdown() {
             return;
         }
 
+        // Clear any existing timeout
+        if (notifyTimeoutRef.current) {
+            clearTimeout(notifyTimeoutRef.current);
+        }
+
         if (Notification.permission === "granted") {
             setIsNotifyEnabled(true);
             setShowNotifyConfirm(true);
-            setTimeout(() => setShowNotifyConfirm(false), 2000);
+            notifyTimeoutRef.current = setTimeout(() => setShowNotifyConfirm(false), 2000);
         } else if (Notification.permission !== "denied") {
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
                 setIsNotifyEnabled(true);
                 setShowNotifyConfirm(true);
-                setTimeout(() => setShowNotifyConfirm(false), 2000);
+                notifyTimeoutRef.current = setTimeout(() => setShowNotifyConfirm(false), 2000);
             }
         }
     }, []);

@@ -58,19 +58,30 @@ export default function BootSequence({ children }: { children: React.ReactNode }
             return;
         }
 
+        // Track all timeout IDs for cleanup
+        const timeoutIds: NodeJS.Timeout[] = [];
+
         // Show boot sequence
         BOOT_LINES.forEach((line, index) => {
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 setVisibleLines(prev => [...prev, index]);
             }, line.delay);
+            timeoutIds.push(timeoutId);
         });
 
         // End boot sequence
-        setTimeout(() => {
+        const endBootTimeoutId = setTimeout(() => {
             sessionStorage.setItem("flux_booted", "true");
             setIsBooting(false);
-            setTimeout(() => setShowContent(true), 500);
+            const showContentTimeoutId = setTimeout(() => setShowContent(true), 500);
+            timeoutIds.push(showContentTimeoutId);
         }, 5000);
+        timeoutIds.push(endBootTimeoutId);
+
+        // Cleanup: clear all timeouts on unmount
+        return () => {
+            timeoutIds.forEach(id => clearTimeout(id));
+        };
     }, []);
 
     return (
