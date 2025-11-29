@@ -21,3 +21,14 @@ export function assetPath(path: string): string {
   if (path.startsWith(base)) return path;
   return `${base}${path}`;
 }
+
+/**
+ * Format seconds into human-readable time string
+ * Extracted to shared utility to avoid recreating function on every render
+ */
+export function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
