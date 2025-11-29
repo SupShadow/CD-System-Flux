@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode, useCallback, useRef, useEffect, useState } from "react";
+import { createContext, useContext, ReactNode, useCallback, useRef, useEffect, useState, useMemo } from "react";
 
 type SoundType = "hover" | "click" | "success" | "error" | "whoosh";
 
@@ -123,8 +123,15 @@ export function SoundProvider({ children }: { children: ReactNode }) {
         setEnabledState(value);
     }, []);
 
+    // Memoize the context value to prevent unnecessary re-renders
+    const value = useMemo(() => ({
+        playSound,
+        enabled,
+        setEnabled,
+    }), [playSound, enabled, setEnabled]);
+
     return (
-        <SoundContext.Provider value={{ playSound, enabled, setEnabled }}>
+        <SoundContext.Provider value={value}>
             {children}
         </SoundContext.Provider>
     );

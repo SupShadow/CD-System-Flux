@@ -8,7 +8,8 @@ describe("Tracks Data", () => {
     });
 
     it("has the correct number of tracks", () => {
-        expect(TRACKS.length).toBe(25);
+        // Album has 26 tracks total
+        expect(TRACKS.length).toBe(26);
     });
 
     it("each track has required properties", () => {

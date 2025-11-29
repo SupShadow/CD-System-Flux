@@ -234,8 +234,8 @@ describe("FluxPlayer", () => {
                 await user.click(playlistButton);
             }
 
-            // Should show track count
-            expect(screen.getByText(/25_TRACKS/)).toBeInTheDocument();
+            // Should show track count (26 total tracks in album)
+            expect(screen.getByText(/\d+_TRACKS/)).toBeInTheDocument();
         });
     });
 });

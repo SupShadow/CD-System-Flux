@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle, Info, X, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -130,14 +130,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         [showToast]
     );
 
-    const value: ToastContextValue = {
+    // Memoize the context value to prevent unnecessary re-renders
+    const value = useMemo<ToastContextValue>(() => ({
         showToast,
         showError,
         showSuccess,
         showWarning,
         showInfo,
         dismissToast,
-    };
+    }), [showToast, showError, showSuccess, showWarning, showInfo, dismissToast]);
 
     return (
         <ToastContext.Provider value={value}>

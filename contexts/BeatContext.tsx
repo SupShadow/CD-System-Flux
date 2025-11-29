@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useAudio } from "@/contexts/AudioContext";
 import { useBeatDetection, BeatState } from "@/hooks/useBeatDetection";
 
@@ -28,5 +28,15 @@ export function BeatProvider({ children }: { children: ReactNode }) {
         minBeatInterval: 120,
     });
 
-    return <BeatCtx.Provider value={beatState}>{children}</BeatCtx.Provider>;
+    // Memoize the context value to prevent unnecessary re-renders
+    const value = useMemo(() => beatState, [
+        beatState.isBeat,
+        beatState.beatIntensity,
+        beatState.bassLevel,
+        beatState.midLevel,
+        beatState.highLevel,
+        beatState.energy,
+    ]);
+
+    return <BeatCtx.Provider value={value}>{children}</BeatCtx.Provider>;
 }

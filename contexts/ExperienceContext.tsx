@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useReducer, useEffect, ReactNode, useCallback, useMemo } from "react";
 import { Track, TRACKS } from "@/lib/tracks";
 
 // ============================================================================
@@ -449,7 +449,8 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
         return stages[state.evolutionStage] || stages[0];
     }, [state.evolutionStage]);
 
-    const value: ExperienceContextValue = {
+    // Memoize the context value to prevent unnecessary re-renders
+    const value = useMemo<ExperienceContextValue>(() => ({
         state,
         incrementInfection,
         addListenTime,
@@ -463,7 +464,21 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
         getAchievement,
         getInfectionPercentage,
         getEvolutionColors,
-    };
+    }), [
+        state,
+        incrementInfection,
+        addListenTime,
+        completeTrack,
+        incrementPlayCount,
+        unlockAchievement,
+        findSecret,
+        setZone,
+        toggleNarrative,
+        hasAchievement,
+        getAchievement,
+        getInfectionPercentage,
+        getEvolutionColors,
+    ]);
 
     return (
         <ExperienceContext.Provider value={value}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 
 interface AccessibilitySettings {
     /** User prefers reduced motion (OS setting) */
@@ -84,14 +84,15 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
         return duration;
     }, [disableFlashing]);
 
-    const value: AccessibilitySettings = {
+    // Memoize the context value to prevent unnecessary re-renders
+    const value = useMemo<AccessibilitySettings>(() => ({
         prefersReducedMotion,
         safeMode,
         toggleSafeMode,
         disableFlashing,
         disableGlitch,
         getSafeDuration,
-    };
+    }), [prefersReducedMotion, safeMode, toggleSafeMode, disableFlashing, disableGlitch, getSafeDuration]);
 
     return (
         <AccessibilityCtx.Provider value={value}>
