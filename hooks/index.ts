@@ -5,6 +5,10 @@ export { useBeatDetection } from "./useBeatDetection";
 export type { BeatState } from "./useBeatDetection";
 export { useScrollPosition } from "./useScrollPosition";
 
+// Animation and timer utilities
+export { useAnimationLoop, useInterval, useThrottledCallback } from "./useAnimationLoop";
+export { useEventListener, useWindowResize, useKeyPress, useClickOutside } from "./useEventListener";
+
 // Android-specific hooks
 export { useDeviceInfo, useIsAndroid, useIsLowEndDevice } from "./useDeviceInfo";
 export type { DeviceInfo } from "./useDeviceInfo";

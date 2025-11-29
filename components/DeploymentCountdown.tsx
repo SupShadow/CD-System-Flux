@@ -75,6 +75,11 @@ const urgencyConfig: Record<UrgencyState, {
 };
 
 // Time module component with flip animation
+// Pre-generated binary overlay to avoid re-creating arrays on every render
+const BINARY_OVERLAY = Array.from({ length: 8 }, () =>
+    Array.from({ length: 4 }, () => Math.random() > 0.5 ? "1" : "0").join("")
+);
+
 function TimeModule({
     value,
     label,
@@ -97,12 +102,10 @@ function TimeModule({
             transition={{ duration: 0.2 }}
         >
             <div className="relative">
-                {/* Binary overlay */}
+                {/* Binary overlay - using pre-generated constant to avoid GC pressure */}
                 <div className="absolute inset-0 font-mono text-[6px] text-stark/5 overflow-hidden pointer-events-none select-none group-hover:text-stark/10 transition-colors">
-                    {Array.from({ length: 8 }, (_, i) => (
-                        <div key={i}>
-                            {Array.from({ length: 4 }, () => Math.random() > 0.5 ? "1" : "0").join("")}
-                        </div>
+                    {BINARY_OVERLAY.map((row, i) => (
+                        <div key={i}>{row}</div>
                     ))}
                 </div>
 

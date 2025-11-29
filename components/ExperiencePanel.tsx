@@ -6,6 +6,7 @@ import { useExperience, ACHIEVEMENTS } from "@/contexts/ExperienceContext";
 import { useSecrets, SECRETS, SecretProgress } from "@/components/SecretChallenges";
 import { GenerativeArtwork } from "@/components/GenerativeArtwork";
 import { ZoneMap, ZoneMapButton, ZONES } from "@/components/ZoneNavigator";
+import { formatTime } from "@/lib/utils";
 import {
     User,
     Trophy,
@@ -28,13 +29,6 @@ export function ExperiencePanel() {
     const { state, getEvolutionColors } = useExperience();
     const { unlockedSecrets } = useSecrets();
     const colors = getEvolutionColors();
-
-    const formatTime = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        if (hours > 0) return `${hours}h ${minutes}m`;
-        return `${minutes}m`;
-    };
 
     return (
         <>
@@ -153,13 +147,6 @@ export function ExperiencePanel() {
 function StatsTab() {
     const { state, getEvolutionColors } = useExperience();
     const colors = getEvolutionColors();
-
-    const formatTime = (seconds: number) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        if (hours > 0) return `${hours}h ${minutes}m`;
-        return `${minutes}m`;
-    };
 
     const stats = [
         { label: "LISTEN_TIME", value: formatTime(state.stats.totalListenTime), icon: Clock },
