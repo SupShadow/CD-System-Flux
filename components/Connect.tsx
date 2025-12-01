@@ -144,7 +144,7 @@ export default function Connect() {
 
                     {/* Status line */}
                     <div className="relative z-10 flex justify-center mt-6 pt-4 border-t border-stark/10">
-                        <span className="font-mono text-[10px] text-stark/30 tracking-wider">
+                        <span className="font-mono text-[10px] text-stark/40 tracking-wider">
                             NODE_STATUS: <span className="text-signal/60">ACTIVE</span>
                         </span>
                     </div>

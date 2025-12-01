@@ -364,7 +364,7 @@ export default function SingleLaunch() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center font-mono text-[10px] text-stark/30 mt-4"
+                className="text-center font-mono text-[10px] text-stark/40 mt-4"
             >
                 {isReleased ? "CLICK TO PLAY" : "PREVIEW AVAILABLE ON RELEASE"}
             </motion.p>

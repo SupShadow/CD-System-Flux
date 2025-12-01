@@ -212,7 +212,7 @@ export default function OnboardingTour() {
                                         disabled={isFirstStep}
                                         className={`flex items-center gap-2 px-4 py-2 font-mono text-xs tracking-wider transition-colors ${
                                             isFirstStep
-                                                ? "text-stark/30 cursor-not-allowed"
+                                                ? "text-stark/40 cursor-not-allowed"
                                                 : "text-stark/70 hover:text-signal"
                                         }`}
                                     >

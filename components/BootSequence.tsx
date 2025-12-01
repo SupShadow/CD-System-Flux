@@ -105,13 +105,13 @@ export default function BootSequence({ children }: { children: React.ReactNode }
                                 animate={{ opacity: 1 }}
                                 className="mb-8 text-center"
                             >
-                                <div className="font-mono text-xs text-stark/30 mb-2">
+                                <div className="font-mono text-xs text-stark/40 mb-2">
                                     ╔══════════════════════════════════════╗
                                 </div>
                                 <div className="font-mono text-signal text-lg tracking-widest glitch-text" data-text="FLUX_OS">
                                     FLUX_OS
                                 </div>
-                                <div className="font-mono text-xs text-stark/30 mt-2">
+                                <div className="font-mono text-xs text-stark/40 mt-2">
                                     ╚══════════════════════════════════════╝
                                 </div>
                             </motion.div>
@@ -169,7 +169,7 @@ export default function BootSequence({ children }: { children: React.ReactNode }
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 1 }}
-                            className="absolute bottom-8 left-1/2 -translate-x-1/2 font-mono text-[10px] text-stark/30"
+                            className="absolute bottom-8 left-1/2 -translate-x-1/2 font-mono text-[10px] text-stark/40"
                         >
                             POWERED BY GUGGEIS.AI
                         </motion.div>

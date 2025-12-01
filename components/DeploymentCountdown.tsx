@@ -320,7 +320,7 @@ END:VCALENDAR`;
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-stark/10">
-                    <div className="font-mono text-[8px] text-stark/30 text-center">
+                    <div className="font-mono text-[8px] text-stark/40 text-center">
                         SYNC_CALENDAR_REMINDER
                     </div>
                 </div>

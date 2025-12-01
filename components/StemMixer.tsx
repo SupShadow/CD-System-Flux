@@ -28,7 +28,7 @@ function StemControl({ name, active, onToggle }: StemProps) {
                     transition={{ type: "spring", stiffness: 100, damping: 20 }}
                 />
             </div>
-            <span className={cn("font-mono text-xs tracking-widest", active ? "text-signal" : "text-stark/30")}>
+            <span className={cn("font-mono text-xs tracking-widest", active ? "text-signal" : "text-stark/40")}>
                 {name}
             </span>
         </div>
@@ -87,7 +87,7 @@ export default function StemMixer() {
 
                             {/* Current track info */}
                             <div className="text-center mb-8">
-                                <p className="font-mono text-xs text-stark/30 mb-1">ACTIVE_TRACK:</p>
+                                <p className="font-mono text-xs text-stark/40 mb-1">ACTIVE_TRACK:</p>
                                 <p className={cn(
                                     "font-mono text-sm",
                                     isPlaying ? "text-signal" : "text-stark/50"
@@ -107,7 +107,7 @@ export default function StemMixer() {
                                 ))}
                             </div>
 
-                            <div className="mt-12 text-center font-mono text-xs text-stark/30">
+                            <div className="mt-12 text-center font-mono text-xs text-stark/40">
                                 <p>AUDIO_ENGINE: {isInitialized ? "ONLINE" : "STANDBY"}</p>
                                 <p>ACTIVE_STEMS: {activeStemCount}/4</p>
                                 <p className="mt-2 text-stark/20">

@@ -2,16 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Oswald, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import NeuralBackground from "@/components/NeuralBackground";
 import BootSequence from "@/components/BootSequence";
-import CursorTrail from "@/components/CursorTrail";
-import AIBadge from "@/components/AIBadge";
-import ConsoleEasterEgg from "@/components/ConsoleEasterEgg";
-import SelectionGlitch from "@/components/SelectionGlitch";
-import ClickExplosion from "@/components/ClickExplosion";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import ScrollProgress from "@/components/ScrollProgress";
-import ParallaxLayers from "@/components/ParallaxLayers";
+import LayoutEffects from "@/components/LayoutEffects";
 
 const oswald = Oswald({
   variable: "--font-oswald",
@@ -106,19 +98,13 @@ export default function RootLayout({
       <body
         className={`${oswald.variable} ${robotoMono.variable} antialiased bg-void text-stark`}
       >
-        <NeuralBackground />
-        <ParallaxLayers />
-        <CursorTrail />
-        <ScrollProgress position="top" />
+        {/* Lazy-loaded visual effects for better LCP */}
+        <LayoutEffects />
+        {/* Static noise overlay */}
         <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.05] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
         <BootSequence>
           <Providers>{children}</Providers>
         </BootSequence>
-        <AIBadge />
-        <ConsoleEasterEgg />
-        <SelectionGlitch />
-        <ClickExplosion />
-        <ServiceWorkerRegistration />
       </body>
     </html>
   );

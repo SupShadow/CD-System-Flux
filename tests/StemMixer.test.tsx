@@ -173,7 +173,7 @@ describe("StemMixer", () => {
             }
 
             // Now DRUMS should have inactive styling
-            expect(drumsLabel).toHaveClass("text-stark/30");
+            expect(drumsLabel).toHaveClass("text-stark/40");
         });
     });
 

@@ -117,7 +117,7 @@ export default function MerchTeaser() {
                     </div>
 
                     {/* Status */}
-                    <p className="text-[10px] text-stark/30 mt-2">
+                    <p className="text-[10px] text-stark/40 mt-2">
                         STATUS: <span className="text-stark/50">AWAITING_AUTHORIZATION</span>
                     </p>
                 </div>

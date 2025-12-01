@@ -147,7 +147,7 @@ export default function AudioWaveform({
             />
             {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-mono text-[10px] text-stark/30">AUDIO_IDLE</span>
+                    <span className="font-mono text-[10px] text-stark/40">AUDIO_IDLE</span>
                 </div>
             )}
         </div>

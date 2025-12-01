@@ -137,7 +137,7 @@ export default function TrackList({ isOpen, onClose, currentTrack, onSelect, isP
                                         aria-label={`${track.title}${isActive && isPlaying ? ", now playing" : ""}`}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <span className={cn("w-6 text-xs", isActive ? "text-signal" : "text-stark/30")}>
+                                            <span className={cn("w-6 text-xs", isActive ? "text-signal" : "text-stark/40")}>
                                                 {String(index + 1).padStart(2, "0")}
                                             </span>
                                             <span className={cn("uppercase tracking-wider", isActive ? "text-signal glitch-text" : "text-stark/80 group-hover:text-stark")} data-text={track.title}>

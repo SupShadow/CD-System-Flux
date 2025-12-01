@@ -74,7 +74,7 @@ export default function NotFound() {
                 </Link>
 
                 {/* Decorative Elements */}
-                <div className="mt-12 font-mono text-xs text-stark/30 space-y-1">
+                <div className="mt-12 font-mono text-xs text-stark/40 space-y-1">
                     <p>FLUX_OS // ERROR_HANDLER v1.0</p>
                     <p>SYSTEM STATUS: ROUTE_NOT_FOUND</p>
                 </div>

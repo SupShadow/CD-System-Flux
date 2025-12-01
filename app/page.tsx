@@ -119,7 +119,7 @@ export default function Home() {
             >
               IMPRESSUM
             </a>
-            <span className="text-stark/30 hidden md:inline">{"//"}</span>
+            <span className="text-stark/40 hidden md:inline">{"//"}</span>
             <a
               href="https://www.derguggeis.de/datenschutzerklaerung"
               target="_blank"

@@ -434,7 +434,7 @@ export default function TransmitButton({
                                 </span>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="p-1 text-stark/30 hover:text-signal transition-colors"
+                                    className="p-1 text-stark/40 hover:text-signal transition-colors"
                                 >
                                     <X className="w-3 h-3" />
                                 </button>
@@ -484,7 +484,7 @@ export default function TransmitButton({
 
                             {/* Footer */}
                             <div className="mt-3 pt-2 border-t border-stark/10">
-                                <div className="font-mono text-[8px] text-stark/30 text-center">
+                                <div className="font-mono text-[8px] text-stark/40 text-center">
                                     RIGHT_CLICK FOR OPTIONS
                                 </div>
                             </div>

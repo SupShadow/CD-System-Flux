@@ -251,7 +251,7 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
             </motion.button>
 
             {/* ESC hint */}
-            <div className="absolute bottom-8 right-8 font-mono text-[10px] text-stark/30">
+            <div className="absolute bottom-8 right-8 font-mono text-[10px] text-stark/40">
                 [ESC] EXIT
             </div>
 
