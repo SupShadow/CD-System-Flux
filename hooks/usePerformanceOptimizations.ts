@@ -120,7 +120,8 @@ export function usePerformanceOptimizations(): PerformanceOptimizations {
 
     // Detect battery status (if available)
     useEffect(() => {
-        let cleanupFn: (() => void) | undefined;
+        let isMounted = true;
+        let batteryCleanup: (() => void) | undefined;
 
         const checkBattery = async () => {
             try {
@@ -128,24 +129,28 @@ export function usePerformanceOptimizations(): PerformanceOptimizations {
                 if (!getBattery) return;
 
                 const battery = await getBattery.call(navigator);
-                if (battery) {
-                    const updateBatteryStatus = () => {
-                        // Consider battery low if < 20% and not charging
-                        setIsBatteryLow(battery.level < 0.2 && !battery.charging);
-                    };
 
-                    updateBatteryStatus();
+                // Check if still mounted after async operation
+                if (!isMounted || !battery) return;
 
-                    // Use type assertion for battery events (BatteryManager extends EventTarget in browsers)
-                    const batteryTarget = battery as unknown as EventTarget;
-                    batteryTarget.addEventListener("levelchange", updateBatteryStatus);
-                    batteryTarget.addEventListener("chargingchange", updateBatteryStatus);
+                const updateBatteryStatus = () => {
+                    // Only update state if still mounted
+                    if (!isMounted) return;
+                    // Consider battery low if < 20% and not charging
+                    setIsBatteryLow(battery.level < 0.2 && !battery.charging);
+                };
 
-                    cleanupFn = () => {
-                        batteryTarget.removeEventListener("levelchange", updateBatteryStatus);
-                        batteryTarget.removeEventListener("chargingchange", updateBatteryStatus);
-                    };
-                }
+                updateBatteryStatus();
+
+                // Use type assertion for battery events (BatteryManager extends EventTarget in browsers)
+                const batteryTarget = battery as unknown as EventTarget;
+                batteryTarget.addEventListener("levelchange", updateBatteryStatus);
+                batteryTarget.addEventListener("chargingchange", updateBatteryStatus);
+
+                batteryCleanup = () => {
+                    batteryTarget.removeEventListener("levelchange", updateBatteryStatus);
+                    batteryTarget.removeEventListener("chargingchange", updateBatteryStatus);
+                };
             } catch {
                 // Battery API not available
             }
@@ -154,7 +159,8 @@ export function usePerformanceOptimizations(): PerformanceOptimizations {
         checkBattery();
 
         return () => {
-            cleanupFn?.();
+            isMounted = false;
+            batteryCleanup?.();
         };
     }, []);
 

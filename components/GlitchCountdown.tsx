@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface TimeLeft {
@@ -15,6 +15,7 @@ const TARGET_DATE = new Date("2025-11-28T00:00:00");
 export default function GlitchCountdown() {
     const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     const [isGlitching, setIsGlitching] = useState(false);
+    const glitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const calculateTimeLeft = () => {
@@ -36,7 +37,11 @@ export default function GlitchCountdown() {
         const glitchInterval = setInterval(() => {
             if (Math.random() > 0.7) {
                 setIsGlitching(true);
-                setTimeout(() => setIsGlitching(false), 150);
+                // Clear any existing timeout before creating a new one
+                if (glitchTimeoutRef.current) {
+                    clearTimeout(glitchTimeoutRef.current);
+                }
+                glitchTimeoutRef.current = setTimeout(() => setIsGlitching(false), 150);
             }
         }, 2000);
 
@@ -45,6 +50,9 @@ export default function GlitchCountdown() {
         return () => {
             clearInterval(timer);
             clearInterval(glitchInterval);
+            if (glitchTimeoutRef.current) {
+                clearTimeout(glitchTimeoutRef.current);
+            }
         };
     }, []);
 

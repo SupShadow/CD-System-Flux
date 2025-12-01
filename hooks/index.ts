@@ -7,6 +7,12 @@ export { useScrollPosition } from "./useScrollPosition";
 
 // Animation and timer utilities
 export { useAnimationLoop, useInterval, useThrottledCallback } from "./useAnimationLoop";
+export {
+    useSafeTimeout,
+    useTimeoutManager,
+    useMountedRef,
+    useIntervalWithTimeout,
+} from "./useSafeTimers";
 export { useEventListener, useWindowResize, useKeyPress, useClickOutside } from "./useEventListener";
 
 // Android-specific hooks

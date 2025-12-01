@@ -36,7 +36,7 @@ export default function AudioWaveform({
     const [dimensions, setDimensions] = useState({ width, height });
 
     // Pre-allocate data array to avoid GC pressure at 60fps
-    const dataArrayRef = useRef<Uint8Array | null>(null);
+    const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
     // Handle responsive resizing
     useEffect(() => {
@@ -80,7 +80,7 @@ export default function AudioWaveform({
             // Reuse pre-allocated array to avoid GC pressure at 60fps
             const bufferLength = analyser.frequencyBinCount;
             if (!dataArrayRef.current || dataArrayRef.current.length !== bufferLength) {
-                dataArrayRef.current = new Uint8Array(bufferLength);
+                dataArrayRef.current = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
             }
             const dataArray = dataArrayRef.current;
             analyser.getByteFrequencyData(dataArray);

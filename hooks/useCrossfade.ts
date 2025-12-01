@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { Track } from "@/lib/tracks";
 import { assetPath } from "@/lib/utils";
 
@@ -38,6 +38,43 @@ export function useCrossfade(audioContext: AudioContext | null) {
 
     const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const animationFrameRef = useRef<number | null>(null);
+    const mountedRef = useRef(true);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            // Cancel any pending animation frame
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+            // Cancel any pending timeout
+            if (transitionTimeoutRef.current) {
+                clearTimeout(transitionTimeoutRef.current);
+                transitionTimeoutRef.current = null;
+            }
+            // Clean up secondary audio
+            if (secondaryAudioRef.current) {
+                secondaryAudioRef.current.pause();
+                secondaryAudioRef.current.src = "";
+                secondaryAudioRef.current = null;
+            }
+            if (secondarySourceRef.current) {
+                try {
+                    secondarySourceRef.current.disconnect();
+                } catch { /* ignore disconnect errors */ }
+                secondarySourceRef.current = null;
+            }
+            if (secondaryGainRef.current) {
+                try {
+                    secondaryGainRef.current.disconnect();
+                } catch { /* ignore disconnect errors */ }
+                secondaryGainRef.current = null;
+            }
+        };
+    }, []);
 
     /**
      * Perform a crossfade transition from the current track to a new track
@@ -83,6 +120,11 @@ export function useCrossfade(audioContext: AudioContext | null) {
 
                 // Animate the crossfade
                 const animateCrossfade = () => {
+                    // Stop if component was unmounted
+                    if (!mountedRef.current) {
+                        return;
+                    }
+
                     const now = audioContext.currentTime;
                     const progress = Math.min(1, (now - startTime) / config.duration);
 

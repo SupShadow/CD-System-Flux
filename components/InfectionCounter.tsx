@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Wifi } from "lucide-react";
 
@@ -8,6 +8,7 @@ export default function InfectionCounter() {
     const [nodes, setNodes] = useState(8492);
     const [isActive, setIsActive] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -16,11 +17,20 @@ export default function InfectionCounter() {
             if (Math.random() > 0.5) {
                 setNodes(prev => prev + Math.floor(Math.random() * 5) + 1);
                 setIsActive(true);
-                setTimeout(() => setIsActive(false), 300);
+                // Clear any existing timeout before creating a new one
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                }
+                timeoutRef.current = setTimeout(() => setIsActive(false), 300);
             }
         }, 2000);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
     }, []);
 
     if (!mounted) return null;

@@ -5,25 +5,32 @@ import { motion } from "framer-motion";
 import { ShieldAlert, KeyRound, Bell, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TiltCard from "./TiltCard";
+import { usePageVisibility } from "@/hooks";
 
 export default function MerchTeaser() {
     const [accessAttempts, setAccessAttempts] = useState(0);
     const [overrideCode, setOverrideCode] = useState("████████");
     const [mounted, setMounted] = useState(false);
     const [scanLine, setScanLine] = useState(0);
+    const isVisible = usePageVisibility();
 
     useEffect(() => {
         setMounted(true);
+    }, []);
 
-        // Simulate access attempts
+    // Separate effect for animations that respects page visibility
+    useEffect(() => {
+        if (!mounted || !isVisible) return;
+
+        // Simulate access attempts (reduced frequency: 150ms instead of 100ms)
         const attemptsInterval = setInterval(() => {
             setAccessAttempts(prev => {
                 if (prev >= 47) return 47; // Stuck at 47
                 return prev + 1;
             });
-        }, 100);
+        }, 150);
 
-        // Glitching override code
+        // Glitching override code (reduced frequency: 150ms instead of 100ms)
         const chars = "█▓▒░ABCDEF0123456789";
         const codeInterval = setInterval(() => {
             const length = 8;
@@ -32,19 +39,19 @@ export default function MerchTeaser() {
                 result += chars[Math.floor(Math.random() * chars.length)];
             }
             setOverrideCode(result);
-        }, 100);
+        }, 150);
 
-        // Scan line animation
+        // Scan line animation (reduced frequency: 80ms instead of 50ms)
         const scanInterval = setInterval(() => {
-            setScanLine(prev => (prev >= 100 ? 0 : prev + 2));
-        }, 50);
+            setScanLine(prev => (prev >= 100 ? 0 : prev + 4));
+        }, 80);
 
         return () => {
             clearInterval(attemptsInterval);
             clearInterval(codeInterval);
             clearInterval(scanInterval);
         };
-    }, []);
+    }, [mounted, isVisible]);
 
     return (
         <div className="space-y-4">

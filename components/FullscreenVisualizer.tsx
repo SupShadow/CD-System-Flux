@@ -58,7 +58,7 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
     const isVisible = usePageVisibility();
 
     // Pre-allocate audio data array to avoid GC pressure - stored in ref
-    const dataArrayRef = useRef<Uint8Array | null>(null);
+    const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
     // Initialize persistent state for visualizers that need it
     const visualizerState = useMemo<VisualizerState>(() => ({
@@ -105,13 +105,13 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
                 bufferLength = analyserRef.current.frequencyBinCount;
                 // Reallocate only if buffer size changed (rare)
                 if (!dataArrayRef.current || dataArrayRef.current.length !== bufferLength) {
-                    dataArrayRef.current = new Uint8Array(bufferLength);
+                    dataArrayRef.current = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
                 }
                 analyserRef.current.getByteFrequencyData(dataArrayRef.current);
             } else {
                 // Fill with zeros when no analyser (reuse existing array)
                 if (!dataArrayRef.current) {
-                    dataArrayRef.current = new Uint8Array(bufferLength);
+                    dataArrayRef.current = new Uint8Array(bufferLength) as Uint8Array<ArrayBuffer>;
                 }
                 dataArrayRef.current.fill(0);
             }

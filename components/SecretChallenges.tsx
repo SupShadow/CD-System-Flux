@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useExperience } from "@/contexts/ExperienceContext";
 import { Lock, Unlock, Eye, EyeOff, Zap, Terminal, Music, Clock, MousePointer } from "lucide-react";
@@ -219,6 +219,9 @@ export function SecretProvider({ children }: { children: ReactNode }) {
         terminalCommandsUsed: new Set(),
     });
 
+    // Use a ref to avoid recreating the idle check interval on every activity
+    const lastActivityRef = useRef(trackerState.lastActivity);
+
     const unlockSecret = useCallback((secretId: string) => {
         if (!experienceState.secretsFound.includes(secretId)) {
             findSecret(secretId);
@@ -345,17 +348,22 @@ export function SecretProvider({ children }: { children: ReactNode }) {
         }
     }, [unlockSecret]);
 
-    // Check for idle master
+    // Keep lastActivityRef in sync with state
+    useEffect(() => {
+        lastActivityRef.current = trackerState.lastActivity;
+    }, [trackerState.lastActivity]);
+
+    // Check for idle master - using ref to avoid interval recreation on every activity
     useEffect(() => {
         const checkIdle = setInterval(() => {
-            const idleTime = Date.now() - trackerState.lastActivity;
+            const idleTime = Date.now() - lastActivityRef.current;
             if (idleTime >= 5 * 60 * 1000) { // 5 minutes
                 unlockSecret("idle_master");
             }
         }, 10000);
 
         return () => clearInterval(checkIdle);
-    }, [trackerState.lastActivity, unlockSecret]);
+    }, [unlockSecret]);
 
     // Check for completionist
     useEffect(() => {
