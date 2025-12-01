@@ -26,3 +26,10 @@ export type { AndroidBackButtonOptions } from "./useAndroidBackButton";
 // Performance optimizations
 export { usePerformanceOptimizations, usePerformanceSetting } from "./usePerformanceOptimizations";
 export type { PerformanceSettings, PerformanceLevel, PerformanceOptimizations } from "./usePerformanceOptimizations";
+
+// AI-powered features
+export { useAIRecommendations, useAITransmissions, useAICompanion } from "./useAI";
+
+// Social features
+export { useLeaderboard, useGlobalStats, useSyncListening, useShare } from "./useSocial";
+export type { LeaderboardEntry, GlobalStats, SyncSession } from "./useSocial";

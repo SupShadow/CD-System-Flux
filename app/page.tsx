@@ -8,6 +8,15 @@ import Connect from "@/components/Connect";
 import ScrollReveal from "@/components/ScrollReveal";
 import DeploymentCountdown from "@/components/DeploymentCountdown";
 import { ScrollIndicator } from "@/components/ScrollProgress";
+import { AchievementToast } from "@/components/AchievementToast";
+import { ExperiencePanel } from "@/components/ExperiencePanel";
+import StemMixer from "@/components/StemMixer";
+import SystemStatus from "@/components/SystemStatus";
+import { TimeAmbientOverlay, TimeIndicator } from "@/components/TimeBasedContent";
+import { EvolutionOverlay } from "@/components/EvolutionOverlay";
+import { NarrativeLayer } from "@/components/NarrativeLayer";
+import { SocialBar } from "@/components/SocialBar";
+import { DevBar } from "@/components/DevBar";
 
 export default function Home() {
   return (
@@ -21,9 +30,17 @@ export default function Home() {
         id="main-content"
         className="min-h-screen flex flex-col items-center justify-center p-4 md:p-24 gap-16 md:gap-32 pb-40 relative"
       >
+      <TimeAmbientOverlay />
+      <EvolutionOverlay />
+      <NarrativeLayer />
+      <TimeIndicator />
       <KonamiCode />
       <Terminal />
       <InfectionCounter />
+      <AchievementToast />
+      <ExperiencePanel />
+      <SocialBar />
+      <DevBar />
       <FluxPlayer />
 
       {/* HERO SECTION */}
@@ -49,6 +66,10 @@ export default function Home() {
           </div>
         </ScrollReveal>
 
+        <ScrollReveal animation="fade" delay={0.5}>
+          <StemMixer />
+        </ScrollReveal>
+
         <ScrollReveal animation="fade" delay={0.7}>
           <ScrollIndicator className="mt-8" />
         </ScrollReveal>
@@ -57,6 +78,11 @@ export default function Home() {
       {/* SINGLE LAUNCH SECTION */}
       <ScrollReveal animation="slideUp" delay={0.2}>
         <SingleLaunch />
+      </ScrollReveal>
+
+      {/* SYSTEM STATUS SECTION */}
+      <ScrollReveal animation="slideUp" delay={0.2} className="w-full max-w-md">
+        <SystemStatus />
       </ScrollReveal>
 
       {/* CONNECT SECTION */}
