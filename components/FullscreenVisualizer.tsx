@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useAudio } from "@/contexts/AudioContext";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
+import { useSecrets } from "@/components/SecretChallenges";
 import { usePageVisibility } from "@/hooks";
 import { rgba, calculateAudioMetrics, drawCorners, clearWithFade } from "@/lib/visualizer-utils";
 import {
@@ -54,8 +55,15 @@ export default function FullscreenVisualizer({ isOpen, onClose }: FullscreenVisu
 function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
     const { analyserRef, isPlaying, currentTrack } = useAudio();
     const { disableFlashing } = useAccessibility();
+    const { trackVisualizerOpen, trackVisualizerClose } = useSecrets();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isVisible = usePageVisibility();
+
+    // Track visualizer open/close for secret unlocking
+    useEffect(() => {
+        trackVisualizerOpen();
+        return () => trackVisualizerClose();
+    }, [trackVisualizerOpen, trackVisualizerClose]);
 
     // Pre-allocate audio data array to avoid GC pressure - stored in ref
     const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);

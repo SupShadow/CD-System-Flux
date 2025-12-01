@@ -18,6 +18,8 @@ export interface KeyboardShortcutHandlers {
     onToggleTheme?: () => void;   // T - cycle themes
     onToggleRepeat?: () => void;  // R - repeat toggle
     onToggleShuffle?: () => void; // S - shuffle toggle
+    // Tracking callback for secret unlocking
+    onShortcutUsed?: (shortcut: string) => void;
 }
 
 /**
@@ -53,60 +55,75 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
 
             const currentHandlers = handlersRef.current;
 
+            let shortcutName: string | null = null;
+
             switch (e.code) {
                 case "Space":
                     e.preventDefault();
                     currentHandlers.onPlayPause?.();
+                    shortcutName = "space";
                     break;
                 case "ArrowRight":
                     e.preventDefault();
                     currentHandlers.onNextTrack?.();
+                    shortcutName = "arrow_right";
                     break;
                 case "ArrowLeft":
                     e.preventDefault();
                     currentHandlers.onPrevTrack?.();
+                    shortcutName = "arrow_left";
                     break;
                 case "KeyM":
                     e.preventDefault();
                     currentHandlers.onToggleMute?.();
+                    shortcutName = "m";
                     break;
                 case "KeyF":
                     e.preventDefault();
                     currentHandlers.onToggleFullscreen?.();
+                    shortcutName = "f";
                     break;
                 case "KeyL":
                     e.preventDefault();
                     currentHandlers.onTogglePlaylist?.();
+                    shortcutName = "l";
                     break;
                 case "Slash":
                     // ? key (Shift + /)
                     if (e.shiftKey) {
                         e.preventDefault();
                         currentHandlers.onShowHelp?.();
+                        shortcutName = "?";
                     }
                     break;
                 case "Escape":
                     currentHandlers.onEscape?.();
+                    shortcutName = "escape";
                     break;
                 case "KeyJ":
                     e.preventDefault();
                     currentHandlers.onSeekBackward?.();
+                    shortcutName = "j";
                     break;
                 case "KeyK":
                     e.preventDefault();
                     currentHandlers.onSeekForward?.();
+                    shortcutName = "k";
                     break;
                 case "KeyT":
                     e.preventDefault();
                     currentHandlers.onToggleTheme?.();
+                    shortcutName = "t";
                     break;
                 case "KeyR":
                     e.preventDefault();
                     currentHandlers.onToggleRepeat?.();
+                    shortcutName = "r";
                     break;
                 case "KeyS":
                     e.preventDefault();
                     currentHandlers.onToggleShuffle?.();
+                    shortcutName = "s";
                     break;
                 // Number keys 0-9 for seeking to percentage
                 case "Digit0":
@@ -122,7 +139,13 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
                     e.preventDefault();
                     const digit = parseInt(e.code.replace("Digit", ""), 10);
                     currentHandlers.onSeekPercent?.(digit * 10);
+                    shortcutName = `digit_${digit}`;
                     break;
+            }
+
+            // Track shortcut usage for secret unlocking
+            if (shortcutName) {
+                currentHandlers.onShortcutUsed?.(shortcutName);
             }
         };
 

@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { useAudio } from "@/contexts/AudioContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useKeyboardShortcuts } from "@/hooks";
+import { useSecrets } from "@/components/SecretChallenges";
 import { getArtworkPath } from "@/lib/tracks";
 import TrackList from "./TrackList";
 import KeyboardHints from "./KeyboardHints";
@@ -87,6 +88,7 @@ export default function FluxPlayer() {
     } = useAudio();
 
     const { cycleTheme } = useTheme();
+    const { trackDoubleClick, trackTrackSkip, trackLongPressStart, trackLongPressEnd, trackKeyboardShortcut } = useSecrets();
 
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
     const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
@@ -96,6 +98,7 @@ export default function FluxPlayer() {
     const progressRef = useRef<HTMLDivElement>(null);
     const touchStartX = useRef<number>(0);
     const touchStartY = useRef<number>(0);
+    const longPressStartRef = useRef<number>(0);
     const swipeX = useMotionValue(0);
     const swipeOpacity = useTransform(swipeX, [-100, 0, 100], [0.5, 1, 0.5]);
 
@@ -128,6 +131,7 @@ export default function FluxPlayer() {
             seekToPercent(percent / 100);
         },
         onToggleTheme: cycleTheme,
+        onShortcutUsed: trackKeyboardShortcut,
     });
 
     useEffect(() => {
@@ -140,6 +144,17 @@ export default function FluxPlayer() {
         text: `Check out "${currentTrack.title}" from SYSTEM FLUX by Julian Guggeis`,
         url: typeof window !== "undefined" ? window.location.href : "",
     };
+
+    // Wrapped track skip handlers (defined before swipe handlers that use them)
+    const handlePlayNext = useCallback(() => {
+        trackTrackSkip();
+        playNext();
+    }, [trackTrackSkip, playNext]);
+
+    const handlePlayPrev = useCallback(() => {
+        trackTrackSkip();
+        playPrev();
+    }, [trackTrackSkip, playPrev]);
 
     // Swipe gesture handlers
     const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -170,11 +185,11 @@ export default function FluxPlayer() {
 
         if (currentX > threshold) {
             // Swipe right - previous track
-            playPrev();
+            handlePlayPrev();
             animate(swipeX, 0, { duration: 0.3 });
         } else if (currentX < -threshold) {
             // Swipe left - next track
-            playNext();
+            handlePlayNext();
             animate(swipeX, 0, { duration: 0.3 });
         } else {
             // Snap back
@@ -182,7 +197,7 @@ export default function FluxPlayer() {
         }
 
         setSwipeDirection(null);
-    }, [swipeX, playNext, playPrev]);
+    }, [swipeX, handlePlayNext, handlePlayPrev]);
 
     const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
         const bar = progressRef.current;
@@ -210,6 +225,18 @@ export default function FluxPlayer() {
             seekToPercent(1);
         }
     };
+
+    // Long press handlers for play button secret
+    const handlePlayMouseDown = useCallback(() => {
+        longPressStartRef.current = trackLongPressStart();
+    }, [trackLongPressStart]);
+
+    const handlePlayMouseUp = useCallback(() => {
+        if (longPressStartRef.current > 0) {
+            trackLongPressEnd(longPressStartRef.current);
+            longPressStartRef.current = 0;
+        }
+    }, [trackLongPressEnd]);
 
     const agentNumber = String(currentTrackIndex + 1).padStart(2, "0");
 
@@ -359,7 +386,7 @@ export default function FluxPlayer() {
                                 {/* Playback controls */}
                                 <div className="flex items-center gap-0.5 md:gap-1" role="group" aria-label="Playback controls">
                                     <button
-                                        onClick={playPrev}
+                                        onClick={handlePlayPrev}
                                         className="p-1.5 md:p-2 text-stark/50 hover:text-signal transition-colors"
                                         aria-label="Previous track"
                                     >
@@ -368,6 +395,10 @@ export default function FluxPlayer() {
 
                                     <button
                                         onClick={togglePlay}
+                                        onDoubleClick={trackDoubleClick}
+                                        onMouseDown={handlePlayMouseDown}
+                                        onMouseUp={handlePlayMouseUp}
+                                        onMouseLeave={handlePlayMouseUp}
                                         className={cn(
                                             "w-10 h-10 md:w-12 md:h-12 flex items-center justify-center border-2 transition-all",
                                             isPlaying
@@ -385,7 +416,7 @@ export default function FluxPlayer() {
                                     </button>
 
                                     <button
-                                        onClick={playNext}
+                                        onClick={handlePlayNext}
                                         className="p-1.5 md:p-2 text-stark/50 hover:text-signal transition-colors"
                                         aria-label="Next track"
                                     >
