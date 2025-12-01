@@ -6,6 +6,7 @@ import { BeatProvider } from "@/contexts/BeatContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { SoundProvider } from "@/contexts/SoundContext";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
+import { ExperienceProvider } from "@/contexts/ExperienceContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import SafeModeToggle from "@/components/SafeModeToggle";
 
@@ -13,16 +14,18 @@ export function Providers({ children }: { children: ReactNode }) {
     return (
         <ErrorBoundary>
             <AccessibilityProvider>
-                <ToastProvider>
-                    <SoundProvider>
-                        <AudioProvider>
-                            <BeatProvider>
-                                <SafeModeToggle />
-                                {children}
-                            </BeatProvider>
-                        </AudioProvider>
-                    </SoundProvider>
-                </ToastProvider>
+                <ExperienceProvider>
+                    <ToastProvider>
+                        <SoundProvider>
+                            <AudioProvider>
+                                <BeatProvider>
+                                    <SafeModeToggle />
+                                    {children}
+                                </BeatProvider>
+                            </AudioProvider>
+                        </SoundProvider>
+                    </ToastProvider>
+                </ExperienceProvider>
             </AccessibilityProvider>
         </ErrorBoundary>
     );

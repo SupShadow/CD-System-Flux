@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useReducer, useEffect, useRef, ReactNode, useCallback } from "react";
 import { Track, TRACKS } from "@/lib/tracks";
 
 // ============================================================================
@@ -71,7 +71,8 @@ type ExperienceAction =
     | { type: "EVOLVE_UI" }
     | { type: "COMPLETE_ALBUM" }
     | { type: "INCREMENT_SESSION" }
-    | { type: "LOAD_STATE"; state: Partial<ExperienceState> };
+    | { type: "LOAD_STATE"; state: Partial<ExperienceState> }
+    | { type: "CHECK_TIME_ACHIEVEMENTS" };
 
 // ============================================================================
 // ACHIEVEMENTS DEFINITIONS
@@ -145,11 +146,67 @@ function calculateEvolutionStage(stats: ListeningStats): number {
     return 0;
 }
 
+// Helper function to check and unlock achievements inline in reducer
+// This eliminates cascading useEffect re-renders
+type AchievementTrigger = "listen_time" | "track_complete" | "infection" | "time_of_day" | "play_count";
+
+function checkAndUnlockAchievements(
+    state: ExperienceState,
+    trigger: AchievementTrigger
+): ExperienceState {
+    let newState = state;
+
+    const unlock = (id: string) => {
+        if (newState.achievements.some(a => a.id === id)) return;
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        if (ach) {
+            newState = {
+                ...newState,
+                achievements: [...newState.achievements, { ...ach, unlockedAt: Date.now() }]
+            };
+        }
+    };
+
+    switch (trigger) {
+        case "listen_time": {
+            const minutes = newState.stats.totalListenTime / 60;
+            if (minutes >= 10) unlock("listen_10min");
+            if (minutes >= 60) unlock("listen_1hour");
+            if (minutes >= 300) unlock("listen_5hours");
+            break;
+        }
+        case "track_complete": {
+            const count = newState.stats.tracksCompleted.length;
+            if (count >= 1) unlock("complete_1");
+            if (count >= 5) unlock("complete_5");
+            if (count >= TRACKS.length) unlock("complete_all");
+            break;
+        }
+        case "infection": {
+            if (newState.infectionLevel >= 100) unlock("full_infection");
+            break;
+        }
+        case "play_count": {
+            unlock("first_play");
+            break;
+        }
+        case "time_of_day": {
+            const hour = new Date().getHours();
+            if (hour >= 0 && hour < 6) unlock("night_owl");
+            if (hour >= 4 && hour < 6) unlock("early_bird");
+            break;
+        }
+    }
+
+    return newState;
+}
+
 function experienceReducer(state: ExperienceState, action: ExperienceAction): ExperienceState {
     switch (action.type) {
         case "INCREMENT_INFECTION": {
             const newLevel = Math.min(100, state.infectionLevel + action.amount);
-            return { ...state, infectionLevel: newLevel };
+            const newState = { ...state, infectionLevel: newLevel };
+            return checkAndUnlockAchievements(newState, "infection");
         }
 
         case "ADD_LISTEN_TIME": {
@@ -159,11 +216,12 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
                 lastVisit: Date.now(),
             };
             const newEvolution = calculateEvolutionStage(newStats);
-            return {
+            const newState = {
                 ...state,
                 stats: newStats,
                 evolutionStage: Math.max(state.evolutionStage, newEvolution),
             };
+            return checkAndUnlockAchievements(newState, "listen_time");
         }
 
         case "COMPLETE_TRACK": {
@@ -176,17 +234,18 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
             };
             const newEvolution = calculateEvolutionStage(newStats);
             const albumCompleted = newStats.tracksCompleted.length >= TRACKS.length;
-            return {
+            const newState = {
                 ...state,
                 stats: newStats,
                 evolutionStage: Math.max(state.evolutionStage, newEvolution),
                 albumCompleted: state.albumCompleted || albumCompleted,
             };
+            return checkAndUnlockAchievements(newState, "track_complete");
         }
 
         case "INCREMENT_PLAY_COUNT": {
             const currentCount = state.stats.trackPlayCounts[action.trackTitle] || 0;
-            return {
+            const newState = {
                 ...state,
                 stats: {
                     ...state.stats,
@@ -196,6 +255,7 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
                     },
                 },
             };
+            return checkAndUnlockAchievements(newState, "play_count");
         }
 
         case "UNLOCK_ACHIEVEMENT": {
@@ -249,6 +309,10 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
             return { ...state, ...action.state };
         }
 
+        case "CHECK_TIME_ACHIEVEMENTS": {
+            return checkAndUnlockAchievements(state, "time_of_day");
+        }
+
         default:
             return state;
     }
@@ -298,89 +362,41 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Save state to localStorage on changes
+    // Ref for debounced storage
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isInitialLoadRef = useRef(true);
+
+    // Debounced save state to localStorage
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch (e) {
-            console.warn("[Experience] Failed to save state:", e);
+        // Skip saving during initial load
+        if (isInitialLoadRef.current) {
+            isInitialLoadRef.current = false;
+            return;
         }
+
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        saveTimeoutRef.current = setTimeout(() => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn("[Experience] Failed to save state:", e);
+            }
+        }, 1000); // 1 second debounce
+
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
     }, [state]);
 
-    // Check for time-based achievements
+    // Check time-based achievements once on mount (handled by reducer)
     useEffect(() => {
-        const hour = new Date().getHours();
-        if (hour >= 0 && hour < 6) {
-            const nightOwl = ACHIEVEMENTS.find(a => a.id === "night_owl");
-            if (nightOwl && !state.achievements.some(a => a.id === "night_owl")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: nightOwl });
-            }
-        }
-        if (hour >= 4 && hour < 6) {
-            const earlyBird = ACHIEVEMENTS.find(a => a.id === "early_bird");
-            if (earlyBird && !state.achievements.some(a => a.id === "early_bird")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: earlyBird });
-            }
-        }
-    }, [state.achievements]);
-
-    // Check for listen time achievements
-    useEffect(() => {
-        const minutes = state.stats.totalListenTime / 60;
-
-        if (minutes >= 10) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "listen_10min");
-            if (ach && !state.achievements.some(a => a.id === "listen_10min")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-        if (minutes >= 60) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "listen_1hour");
-            if (ach && !state.achievements.some(a => a.id === "listen_1hour")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-        if (minutes >= 300) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "listen_5hours");
-            if (ach && !state.achievements.some(a => a.id === "listen_5hours")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-    }, [state.stats.totalListenTime, state.achievements]);
-
-    // Check for track completion achievements
-    useEffect(() => {
-        const count = state.stats.tracksCompleted.length;
-
-        if (count >= 1) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "complete_1");
-            if (ach && !state.achievements.some(a => a.id === "complete_1")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-        if (count >= 5) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "complete_5");
-            if (ach && !state.achievements.some(a => a.id === "complete_5")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-        if (count >= TRACKS.length) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "complete_all");
-            if (ach && !state.achievements.some(a => a.id === "complete_all")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-    }, [state.stats.tracksCompleted.length, state.achievements]);
-
-    // Check for full infection achievement
-    useEffect(() => {
-        if (state.infectionLevel >= 100) {
-            const ach = ACHIEVEMENTS.find(a => a.id === "full_infection");
-            if (ach && !state.achievements.some(a => a.id === "full_infection")) {
-                dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: ach });
-            }
-        }
-    }, [state.infectionLevel, state.achievements]);
+        dispatch({ type: "CHECK_TIME_ACHIEVEMENTS" });
+    }, []);
 
     // Actions
     const incrementInfection = useCallback((amount: number = 1) => {
@@ -396,14 +412,9 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const incrementPlayCount = useCallback((track: Track) => {
+        // Achievement check is now handled by the reducer
         dispatch({ type: "INCREMENT_PLAY_COUNT", trackTitle: track.title });
-
-        // First play achievement
-        const firstPlay = ACHIEVEMENTS.find(a => a.id === "first_play");
-        if (firstPlay && !state.achievements.some(a => a.id === "first_play")) {
-            dispatch({ type: "UNLOCK_ACHIEVEMENT", achievement: firstPlay });
-        }
-    }, [state.achievements]);
+    }, []);
 
     const unlockAchievement = useCallback((achievementId: string) => {
         const ach = ACHIEVEMENTS.find(a => a.id === achievementId);

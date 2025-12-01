@@ -218,8 +218,7 @@ function StatsTab() {
 }
 
 function AchievementsTab() {
-    const { state } = useExperience();
-    const { getEvolutionColors } = useExperience();
+    const { state, getEvolutionColors } = useExperience();
     const colors = getEvolutionColors();
 
     const unlockedIds = state.achievements.map(a => a.id);
@@ -316,8 +315,7 @@ function SecretsTab() {
 }
 
 function ArtworkTab() {
-    const { state } = useExperience();
-    const { getEvolutionColors } = useExperience();
+    const { state, getEvolutionColors } = useExperience();
     const colors = getEvolutionColors();
 
     return (
