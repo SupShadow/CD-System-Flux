@@ -1,9 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { ShareCard, ShareButton } from "./ShareCard";
-import { Leaderboard, LeaderboardButton } from "./Leaderboard";
+import dynamic from "next/dynamic";
+import { ShareButton } from "./ShareCard";
+import { LeaderboardButton } from "./Leaderboard";
 import { GlobalStatsCompact } from "./GlobalStats";
+
+// Lazy load modal components (html2canvas dependency)
+const ShareCard = dynamic(
+    () => import("./ShareCard").then(mod => ({ default: mod.ShareCard })),
+    { ssr: false }
+);
+
+const Leaderboard = dynamic(
+    () => import("./Leaderboard").then(mod => ({ default: mod.Leaderboard })),
+    { ssr: false }
+);
 
 export function SocialBar() {
     const [showShare, setShowShare] = useState(false);

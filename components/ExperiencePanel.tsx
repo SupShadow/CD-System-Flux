@@ -19,7 +19,9 @@ import {
     Download,
     Share2,
     X,
+    Palette,
 } from "lucide-react";
+import { ThemePicker } from "@/components/ThemePicker";
 
 export function ExperiencePanel() {
     const [isOpen, setIsOpen] = useState(false);
@@ -212,6 +214,11 @@ function StatsTab() {
                         {ZONES.find(z => z.id === state.currentZone)?.name || "CORE_NODE"}
                     </span>
                 </div>
+            </div>
+
+            {/* Theme Settings */}
+            <div className="p-4 border border-white/10">
+                <ThemePicker />
             </div>
         </div>
     );

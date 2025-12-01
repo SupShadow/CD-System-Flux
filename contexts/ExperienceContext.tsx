@@ -72,7 +72,8 @@ type ExperienceAction =
     | { type: "COMPLETE_ALBUM" }
     | { type: "INCREMENT_SESSION" }
     | { type: "LOAD_STATE"; state: Partial<ExperienceState> }
-    | { type: "CHECK_TIME_ACHIEVEMENTS" };
+    | { type: "CHECK_TIME_ACHIEVEMENTS" }
+    | { type: "CHECK_THEME_ACHIEVEMENT"; allThemesUsed: boolean };
 
 // ============================================================================
 // ACHIEVEMENTS DEFINITIONS
@@ -82,20 +83,36 @@ export const ACHIEVEMENTS: Achievement[] = [
     // Listening achievements
     { id: "first_play", title: "SYSTEM_INIT", description: "Started your first track", icon: "▶" },
     { id: "listen_10min", title: "ENGAGED", description: "Listened for 10 minutes", icon: "⏱" },
+    { id: "listen_30min", title: "CONNECTED", description: "Listened for 30 minutes", icon: "🔗" },
     { id: "listen_1hour", title: "DEEP_DIVE", description: "Listened for 1 hour", icon: "🎧" },
     { id: "listen_5hours", title: "OBSESSED", description: "Listened for 5 hours", icon: "🔥" },
 
     // Track achievements
     { id: "complete_1", title: "FIRST_BLOOD", description: "Completed a full track", icon: "✓" },
     { id: "complete_5", title: "CURIOUS", description: "Completed 5 tracks", icon: "🔍" },
+    { id: "complete_10", title: "DEDICATED", description: "Completed 10 tracks", icon: "⭐" },
     { id: "complete_all", title: "FLUX_MASTER", description: "Heard every track", icon: "👑" },
+
+    // Session achievements
+    { id: "session_3", title: "RETURNING", description: "Came back for 3 sessions", icon: "🔄" },
+    { id: "session_10", title: "LOYAL_FAN", description: "Visited 10 times", icon: "💎" },
+    { id: "session_25", title: "TRUE_BELIEVER", description: "Visited 25 times", icon: "🏆" },
+
+    // Repeat play achievements
+    { id: "repeat_5", title: "REPEAT_OFFENDER", description: "Played one track 5 times", icon: "🔁", secret: true },
+    { id: "repeat_20", title: "INFINITE_LOOP", description: "Played one track 20 times", icon: "∞", secret: true },
 
     // Secret achievements
     { id: "night_owl", title: "NIGHT_OWL", description: "Listened after midnight", icon: "🌙", secret: true },
     { id: "early_bird", title: "EARLY_BIRD", description: "Listened before 6 AM", icon: "🌅", secret: true },
+    { id: "weekend_warrior", title: "WEEKEND_WARRIOR", description: "Listened on the weekend", icon: "📅", secret: true },
     { id: "konami", title: "OLD_SCHOOL", description: "Entered the Konami code", icon: "🎮", secret: true },
     { id: "terminal_hacker", title: "HACKER", description: "Used the terminal", icon: "💻", secret: true },
     { id: "full_infection", title: "FULLY_INFECTED", description: "Reached 100% infection", icon: "☣", secret: true },
+
+    // Theme achievements
+    { id: "theme_changer", title: "SHAPESHIFTER", description: "Changed the theme", icon: "🎨" },
+    { id: "all_themes", title: "FASHIONISTA", description: "Tried all color themes", icon: "🌈", secret: true },
 
     // Zone achievements
     { id: "explore_all_zones", title: "EXPLORER", description: "Visited all zones", icon: "🗺" },
@@ -148,7 +165,7 @@ function calculateEvolutionStage(stats: ListeningStats): number {
 
 // Helper function to check and unlock achievements inline in reducer
 // This eliminates cascading useEffect re-renders
-type AchievementTrigger = "listen_time" | "track_complete" | "infection" | "time_of_day" | "play_count";
+type AchievementTrigger = "listen_time" | "track_complete" | "infection" | "time_of_day" | "play_count" | "session" | "theme";
 
 function checkAndUnlockAchievements(
     state: ExperienceState,
@@ -171,6 +188,7 @@ function checkAndUnlockAchievements(
         case "listen_time": {
             const minutes = newState.stats.totalListenTime / 60;
             if (minutes >= 10) unlock("listen_10min");
+            if (minutes >= 30) unlock("listen_30min");
             if (minutes >= 60) unlock("listen_1hour");
             if (minutes >= 300) unlock("listen_5hours");
             break;
@@ -179,6 +197,7 @@ function checkAndUnlockAchievements(
             const count = newState.stats.tracksCompleted.length;
             if (count >= 1) unlock("complete_1");
             if (count >= 5) unlock("complete_5");
+            if (count >= 10) unlock("complete_10");
             if (count >= TRACKS.length) unlock("complete_all");
             break;
         }
@@ -188,12 +207,32 @@ function checkAndUnlockAchievements(
         }
         case "play_count": {
             unlock("first_play");
+            // Check for repeat play achievements
+            const playCounts = Object.values(newState.stats.trackPlayCounts);
+            const maxPlays = Math.max(0, ...playCounts);
+            if (maxPlays >= 5) unlock("repeat_5");
+            if (maxPlays >= 20) unlock("repeat_20");
+            break;
+        }
+        case "session": {
+            const sessions = newState.stats.sessionsCount;
+            if (sessions >= 3) unlock("session_3");
+            if (sessions >= 10) unlock("session_10");
+            if (sessions >= 25) unlock("session_25");
             break;
         }
         case "time_of_day": {
-            const hour = new Date().getHours();
+            const now = new Date();
+            const hour = now.getHours();
+            const day = now.getDay(); // 0 = Sunday, 6 = Saturday
             if (hour >= 0 && hour < 6) unlock("night_owl");
             if (hour >= 4 && hour < 6) unlock("early_bird");
+            if (day === 0 || day === 6) unlock("weekend_warrior");
+            break;
+        }
+        case "theme": {
+            unlock("theme_changer");
+            // all_themes is checked via ThemeContext's usedThemes
             break;
         }
     }
@@ -295,7 +334,7 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
         }
 
         case "INCREMENT_SESSION": {
-            return {
+            const newState = {
                 ...state,
                 stats: {
                     ...state.stats,
@@ -303,6 +342,7 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
                     lastVisit: Date.now(),
                 },
             };
+            return checkAndUnlockAchievements(newState, "session");
         }
 
         case "LOAD_STATE": {
@@ -311,6 +351,21 @@ function experienceReducer(state: ExperienceState, action: ExperienceAction): Ex
 
         case "CHECK_TIME_ACHIEVEMENTS": {
             return checkAndUnlockAchievements(state, "time_of_day");
+        }
+
+        case "CHECK_THEME_ACHIEVEMENT": {
+            let newState = checkAndUnlockAchievements(state, "theme");
+            if (action.allThemesUsed) {
+                // Unlock all_themes achievement if all themes have been used
+                const ach = ACHIEVEMENTS.find(a => a.id === "all_themes");
+                if (ach && !newState.achievements.some(a => a.id === "all_themes")) {
+                    newState = {
+                        ...newState,
+                        achievements: [...newState.achievements, { ...ach, unlockedAt: Date.now() }]
+                    };
+                }
+            }
+            return newState;
         }
 
         default:
@@ -334,6 +389,7 @@ interface ExperienceContextValue {
     findSecret: (secretId: string) => void;
     setZone: (zone: ExperienceState["currentZone"]) => void;
     toggleNarrative: (enabled: boolean) => void;
+    checkThemeAchievement: (allThemesUsed: boolean) => void;
 
     // Queries
     hasAchievement: (achievementId: string) => boolean;
@@ -435,6 +491,10 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "TOGGLE_NARRATIVE", enabled });
     }, []);
 
+    const checkThemeAchievement = useCallback((allThemesUsed: boolean) => {
+        dispatch({ type: "CHECK_THEME_ACHIEVEMENT", allThemesUsed });
+    }, []);
+
     // Queries
     const hasAchievement = useCallback((achievementId: string) => {
         return state.achievements.some(a => a.id === achievementId);
@@ -470,6 +530,7 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
         findSecret,
         setZone,
         toggleNarrative,
+        checkThemeAchievement,
         hasAchievement,
         getAchievement,
         getInfectionPercentage,

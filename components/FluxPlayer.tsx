@@ -3,16 +3,23 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, SkipBack, SkipForward, List, Volume2, Volume1, VolumeX, Maximize2, Keyboard } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useAudio } from "@/contexts/AudioContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useKeyboardShortcuts } from "@/hooks";
 import { getArtworkPath } from "@/lib/tracks";
 import TrackList from "./TrackList";
-import FullscreenVisualizer from "./FullscreenVisualizer";
 import KeyboardHints from "./KeyboardHints";
 import TypewriterText from "./TypewriterText";
 import TransmitButton from "./TransmitButton";
 import { cn, assetPath } from "@/lib/utils";
 import Image from "next/image";
+
+// Lazy load heavy visualizer component (13KB+)
+const FullscreenVisualizer = dynamic(
+    () => import("./FullscreenVisualizer"),
+    { ssr: false }
+);
 
 function formatTime(seconds: number): string {
     if (!isFinite(seconds) || seconds < 0) return "0:00";
@@ -79,6 +86,8 @@ export default function FluxPlayer() {
         seekToPercent,
     } = useAudio();
 
+    const { cycleTheme } = useTheme();
+
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
     const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -103,6 +112,22 @@ export default function FluxPlayer() {
             setIsHelpOpen(false);
             setIsPlaylistOpen(false);
         },
+        // New shortcuts
+        onSeekBackward: () => {
+            // Seek 10 seconds back
+            const newTime = Math.max(0, currentTime - 10);
+            seekToPercent(duration > 0 ? newTime / duration : 0);
+        },
+        onSeekForward: () => {
+            // Seek 10 seconds forward
+            const newTime = Math.min(duration, currentTime + 10);
+            seekToPercent(duration > 0 ? newTime / duration : 0);
+        },
+        onSeekPercent: (percent) => {
+            // Jump to percentage (0-90%)
+            seekToPercent(percent / 100);
+        },
+        onToggleTheme: cycleTheme,
     });
 
     useEffect(() => {

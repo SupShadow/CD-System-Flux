@@ -148,6 +148,62 @@ export const SECRETS: Secret[] = [
         icon: Terminal,
     },
 
+    // New secrets
+    {
+        id: "double_tap",
+        name: "DOUBLE_TAP",
+        description: "Double-click the play button 3 times",
+        hint: "Tap tap, tap tap, tap tap",
+        difficulty: "easy",
+        category: "interaction",
+        icon: MousePointer,
+    },
+    {
+        id: "keyboard_ninja",
+        name: "KEYBOARD_NINJA",
+        description: "Use 10 different keyboard shortcuts",
+        hint: "Your fingers hold the power",
+        difficulty: "medium",
+        category: "code",
+        icon: Terminal,
+    },
+    {
+        id: "visualizer_zen",
+        name: "VISUALIZER_ZEN",
+        description: "Watch fullscreen visualizer for 2 minutes",
+        hint: "Lose yourself in the visuals",
+        difficulty: "medium",
+        category: "audio",
+        icon: Eye,
+    },
+    {
+        id: "speed_demon",
+        name: "SPEED_DEMON",
+        description: "Skip through 5 tracks in 10 seconds",
+        hint: "Fast forward fanatic",
+        difficulty: "easy",
+        category: "audio",
+        icon: Zap,
+    },
+    {
+        id: "long_press",
+        name: "PATIENCE",
+        description: "Hold the play button for 5 seconds",
+        hint: "Press and hold...",
+        difficulty: "medium",
+        category: "interaction",
+        icon: Clock,
+    },
+    {
+        id: "night_session",
+        name: "NOCTURNAL",
+        description: "Listen for 30 minutes after midnight",
+        hint: "The night is young",
+        difficulty: "hard",
+        category: "time",
+        icon: Clock,
+    },
+
     // Legendary
     {
         id: "completionist",
@@ -174,6 +230,14 @@ interface SecretTrackerState {
     currentTrackStartTime: number | null;
     hoverCount: number;
     terminalCommandsUsed: Set<string>;
+    // New tracking for new secrets
+    doubleClickTimes: number[];
+    keyboardShortcutsUsed: Set<string>;
+    visualizerStartTime: number | null;
+    visualizerTotalTime: number;
+    trackSkipTimes: number[];
+    nightListenStart: number | null;
+    nightListenTime: number;
 }
 
 interface SecretContextValue {
@@ -188,6 +252,14 @@ interface SecretContextValue {
     trackHover: () => void;
     trackTerminalCommand: (command: string) => void;
     checkTimeBasedSecrets: () => void;
+    // New tracking functions
+    trackDoubleClick: () => void;
+    trackKeyboardShortcut: (shortcut: string) => void;
+    trackVisualizerOpen: () => void;
+    trackVisualizerClose: () => void;
+    trackTrackSkip: () => void;
+    trackLongPressStart: () => number;
+    trackLongPressEnd: (startTime: number) => void;
 }
 
 const SecretContext = createContext<SecretContextValue | null>(null);
@@ -217,6 +289,14 @@ export function SecretProvider({ children }: { children: ReactNode }) {
         currentTrackStartTime: null,
         hoverCount: 0,
         terminalCommandsUsed: new Set(),
+        // New tracking state
+        doubleClickTimes: [],
+        keyboardShortcutsUsed: new Set(),
+        visualizerStartTime: null,
+        visualizerTotalTime: 0,
+        trackSkipTimes: [],
+        nightListenStart: null,
+        nightListenTime: 0,
     });
 
     // Use a ref to avoid recreating the idle check interval on every activity
@@ -331,6 +411,87 @@ export function SecretProvider({ children }: { children: ReactNode }) {
         });
     }, [unlockSecret]);
 
+    // Double-click tracking (for DOUBLE_TAP secret)
+    const trackDoubleClick = useCallback(() => {
+        const now = Date.now();
+        setTrackerState(prev => {
+            // Only count double clicks within 500ms of each other
+            const recentDoubleClicks = [...prev.doubleClickTimes, now].filter(t => now - t < 10000);
+
+            if (recentDoubleClicks.length >= 3) {
+                unlockSecret("double_tap");
+            }
+
+            return { ...prev, doubleClickTimes: recentDoubleClicks };
+        });
+    }, [unlockSecret]);
+
+    // Keyboard shortcut tracking (for KEYBOARD_NINJA secret)
+    const trackKeyboardShortcut = useCallback((shortcut: string) => {
+        setTrackerState(prev => {
+            const newShortcuts = new Set(prev.keyboardShortcutsUsed).add(shortcut);
+
+            if (newShortcuts.size >= 10) {
+                unlockSecret("keyboard_ninja");
+            }
+
+            return { ...prev, keyboardShortcutsUsed: newShortcuts };
+        });
+    }, [unlockSecret]);
+
+    // Visualizer time tracking (for VISUALIZER_ZEN secret)
+    const trackVisualizerOpen = useCallback(() => {
+        setTrackerState(prev => ({
+            ...prev,
+            visualizerStartTime: Date.now(),
+        }));
+    }, []);
+
+    const trackVisualizerClose = useCallback(() => {
+        setTrackerState(prev => {
+            if (!prev.visualizerStartTime) return prev;
+
+            const sessionTime = (Date.now() - prev.visualizerStartTime) / 1000;
+            const newTotal = prev.visualizerTotalTime + sessionTime;
+
+            if (newTotal >= 120) { // 2 minutes
+                unlockSecret("visualizer_zen");
+            }
+
+            return {
+                ...prev,
+                visualizerStartTime: null,
+                visualizerTotalTime: newTotal,
+            };
+        });
+    }, [unlockSecret]);
+
+    // Track skip tracking (for SPEED_DEMON secret)
+    const trackTrackSkip = useCallback(() => {
+        const now = Date.now();
+        setTrackerState(prev => {
+            const recentSkips = [...prev.trackSkipTimes, now].filter(t => now - t < 10000);
+
+            if (recentSkips.length >= 5) {
+                unlockSecret("speed_demon");
+            }
+
+            return { ...prev, trackSkipTimes: recentSkips };
+        });
+    }, [unlockSecret]);
+
+    // Long press tracking (for PATIENCE secret)
+    const trackLongPressStart = useCallback(() => {
+        return Date.now();
+    }, []);
+
+    const trackLongPressEnd = useCallback((startTime: number) => {
+        const duration = (Date.now() - startTime) / 1000;
+        if (duration >= 5) {
+            unlockSecret("long_press");
+        }
+    }, [unlockSecret]);
+
     // Time-based secrets
     const checkTimeBasedSecrets = useCallback(() => {
         const now = new Date();
@@ -399,6 +560,14 @@ export function SecretProvider({ children }: { children: ReactNode }) {
                 trackHover,
                 trackTerminalCommand,
                 checkTimeBasedSecrets,
+                // New tracking functions
+                trackDoubleClick,
+                trackKeyboardShortcut,
+                trackVisualizerOpen,
+                trackVisualizerClose,
+                trackTrackSkip,
+                trackLongPressStart,
+                trackLongPressEnd,
             }}
         >
             {children}
