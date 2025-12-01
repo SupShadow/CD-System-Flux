@@ -166,7 +166,12 @@ function FullscreenVisualizerInner({ onClose }: { onClose: () => void }) {
             transition={{ duration: 0.3 }}
             className="fixed inset-0 z-[100] bg-void"
         >
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+            <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full"
+                role="img"
+                aria-label="Fullscreen audio-reactive visualization"
+            />
 
             {/* Track info overlay */}
             <motion.div

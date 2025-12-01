@@ -50,6 +50,8 @@ export default function AudioVisualizer() {
             width={600}
             height={100}
             className="w-full h-24 opacity-50 mix-blend-screen"
+            role="img"
+            aria-label="Audio frequency visualization with animated bars"
         />
     );
 }

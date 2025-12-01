@@ -17,6 +17,8 @@ import { EvolutionOverlay } from "@/components/EvolutionOverlay";
 import { NarrativeLayer } from "@/components/NarrativeLayer";
 import { SocialBar } from "@/components/SocialBar";
 import { DevBar } from "@/components/DevBar";
+import MerchTeaser from "@/components/MerchTeaser";
+import GlitchTransition from "@/components/GlitchTransition";
 
 export default function Home() {
   return (
@@ -33,6 +35,7 @@ export default function Home() {
       <TimeAmbientOverlay />
       <EvolutionOverlay />
       <NarrativeLayer />
+      <GlitchTransition />
       <TimeIndicator />
       <KonamiCode />
       <Terminal />
@@ -83,6 +86,11 @@ export default function Home() {
       {/* SYSTEM STATUS SECTION */}
       <ScrollReveal animation="slideUp" delay={0.2} className="w-full max-w-md">
         <SystemStatus />
+      </ScrollReveal>
+
+      {/* MERCH TEASER SECTION */}
+      <ScrollReveal animation="glitch" delay={0.2} className="w-full max-w-md">
+        <MerchTeaser />
       </ScrollReveal>
 
       {/* CONNECT SECTION */}
