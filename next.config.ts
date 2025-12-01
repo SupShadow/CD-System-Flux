@@ -1,24 +1,31 @@
 import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
+const isVercel = process.env.VERCEL === "1";
+const isGitHubPages = isProd && !isVercel;
 
 const nextConfig: NextConfig = {
-  // Static export for GitHub Pages
-  output: "export",
+  // Static export only for GitHub Pages (Vercel supports SSR/API routes)
+  ...(isGitHubPages && { output: "export" }),
 
-  // Base path for GitHub Pages (repo name)
-  basePath: isProd ? "/CD-System-Flux" : "",
+  // Base path only for GitHub Pages (repo name)
+  basePath: isGitHubPages ? "/CD-System-Flux" : "",
 
-  // Asset prefix for correct resource loading
-  assetPrefix: isProd ? "/CD-System-Flux/" : "",
+  // Asset prefix only for GitHub Pages
+  assetPrefix: isGitHubPages ? "/CD-System-Flux/" : "",
 
-  // GitHub Pages doesn't support Next.js image optimization
+  // Image optimization: disabled for GitHub Pages, enabled for Vercel
   images: {
-    unoptimized: true,
+    unoptimized: isGitHubPages,
   },
 
   // Trailing slash for better compatibility
   trailingSlash: true,
+
+  // Environment variables exposed to the browser
+  env: {
+    NEXT_PUBLIC_DEPLOYMENT: isVercel ? "vercel" : isGitHubPages ? "github" : "local",
+  },
 };
 
 export default nextConfig;
